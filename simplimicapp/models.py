@@ -1,6 +1,5 @@
 from django.db import models
 
-# Create your models here.
 
 class Patient(models.Model):
     """
@@ -28,7 +27,7 @@ class Admission(models.Model):
     )
 
     # meta
-    subjectID = models.IntegerField(default=None)  # TODO: need to define explicitly or is implicitly through queries enough?
+    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
     admID = models.IntegerField(default=None)
     adm_time = models.DateTimeField(default=None)
     disch_time = models.DateTimeField(default=None)
@@ -41,8 +40,25 @@ class Admission(models.Model):
     los = models.IntegerField(default=0)  # length of stay (in days)
     plos = models.BooleanField(default=None)  # prolonged length of stay
 
-    # TODO: define the link from admission to patient
-    #3
+
+class Descriptor(models.Model):
+    """
+    This holds a single lab value
+    itemID
+    timestamps
+    value
+    unit (valueuom)
+    """
+    # keys
+    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
+    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
+
+    # Fields:
+    itemID = models.IntegerField(default=None)
+    chart_time = models.DateTimeField(default=None)
+    value = models.FloatField(default=None)
+    unit = models.CharField(max_length=10)
+    flag = models.CharField(max_length=8) # abnormal or normal
 
 
 class Sevice(models.Model):
@@ -53,46 +69,21 @@ class Sevice(models.Model):
     pass
 
 
-class Descriptor(models.Model):
-    """
-    The class for a descriptor.
-
-    This holds measurements. either a single if its static, or multiple if its a TS.
-    """
-    # TODO: find out if we need an explicit definition of the HADM and SUBJID here or if queries
-    #       and relations will take care of that
-    subjectID = models.IntegerField(default=None)  # TODO: need to define explicitly or is implicitly through queries enough?
-    admID = models.IntegerField(default=None)
-
-
-    # TODO: check out how MEasurements can be linked to the descriptor
-    # 1 to many relation needed here
-
-
-class Measurement(models.Model):
-    """
-    Holds information on a single measurement
-    """
-    descr_name = models.CharField(max_length=20)
-    itemID = models.IntegerField(default=None)
-    chart_time = models.DateTimeField(default=None)
-    value = models.FloatField(default=None)
-    unit = models.CharField(max_length=10)
-
-    # TODO: define the link from Descriptor to admission
-    # TODO: check whether values are `str` or `num`
-
-
 class Diagnosis(models.Model):
     """
     Holds information on the diagnosis.
     """
+    # keys
+    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
+    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
+
+    # fields
     seq_num = models.IntegerField(default=None, max_length=1)     # e.g. the rank of the diagnosis in the end of the admission
     icd_code = models.IntegerField(max_length=6)
     icd_class = models.IntegerField(max_length=2)
 
 
-class Drug(models.Model):
+class Prescription(models.Model):
     """
     Holds information about a drug
     """
@@ -104,8 +95,11 @@ class Drug(models.Model):
     ROUTE_CHOICES = (
         # TODO: implement
     )
-    """
-    PROD_STRENGTH,DOSE_VAL_RX,DOSE_UNIT_RX,FORM_VAL_DISP,FORM_UNIT_DISP,ROUTE """
+    # keys
+    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
+    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
+
+    # fields
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None)
@@ -121,6 +115,4 @@ class Drug(models.Model):
     form_val_disp = models.CharField(default=None, max_length=25)  # can't take  float here as there are ranges somtimes
     form_unit_disp = models.CharField(default=None, max_length=25)
     route = models.CharField(default=None, max_length=25)   # TODO: establish a CHOICE set here that is hierarchical!
-
-
 
