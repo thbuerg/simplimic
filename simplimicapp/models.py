@@ -17,13 +17,13 @@ class Admission(models.Model):
     """
     ADMISSION_CHOICES = (
         ('Elective',
-         ('NB', 'newborn'),
+         (('NB', 'newborn'),
          ('EL', 'elective')
-         ),
+         )),
         ('Non-elective',
-         ('UR', 'urgent'),
+         (('UR', 'urgent'),
          ('EM', 'emergency')
-         ),
+         )),
     )
 
     # meta
@@ -31,7 +31,7 @@ class Admission(models.Model):
     admID = models.IntegerField(default=None)
     adm_time = models.DateTimeField(default=None)
     disch_time = models.DateTimeField(default=None)
-    adm_type = models.CharField(choices=ADMISSION_CHOICES, default=None)
+    adm_type = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=2)
 
     # Outcomes
     inpmor = models.BooleanField(default=None)  # in-hospital death
@@ -102,7 +102,7 @@ class Prescription(models.Model):
     # fields
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None)
+    drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1)
     drug = models.CharField(default=None, max_length=25)
     drug_name_poe = models.CharField(default=None, max_length=25)
     drug_name_generic = models.CharField(default=None, max_length=25)

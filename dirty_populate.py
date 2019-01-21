@@ -1,12 +1,12 @@
 import os
+os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
 import django
+django.setup()
 import pandas as pd
-from models import *
-
-
+from simplimicapp.models import *
 
 # some dirty FLAGS:
-DATADIR = ''
+DATADIR = '/Users/buergelt/projects/thesis/data/mimic_proc_all'
 
 def djangify_dataframe(df, model):
     """
@@ -40,7 +40,7 @@ def generate_patients():
     # generate an django entry for each row:
     # patient_models = []
     for i, r in patients.iterrows():
-        m = Patient.object.create(
+        m = Patient(
             subjectID = i,
             gender = r['GENDER'],
             age = r['AGE'],
@@ -52,13 +52,12 @@ def generate_patients():
 
 def main():
     # setup
-    os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
     django.setup()
 
     # go
     generate_patients()
-    exit()
-
+    print('DONE')
+    
 
 if __name__ == '__main__':
     main()
