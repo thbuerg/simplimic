@@ -111,14 +111,50 @@ def generate_descriptors(kind='charts'):
                 )
                 m.save()
 
+def generate_presriptions():
+    """
+    GEnerate the entries for the prescriptions.
+    :return:
+    """
+    records = pd.read_csv(os.path.join(DATADIR, 'presc_filt_all.csv'))
+
+    for admid, events_per_adm in records.groupby('HADM_ID'):
+        pids = events_per_adm['SUBJECT_ID'].unique()
+        assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
+
+        a = Admission.objects.get(admID=admid)
+        p = Patient.objects.get(subjectID=pids[0])
+
+        for i, r in drugs_per_adm.iterrows():
+            m = Prescription(
+                subject=p,
+                admission=a,
+                start_date=r['STARTDATE'],
+                end_date=r['ENDDATE'],
+                drug_type=r['DRUGTYPE'],     # TODO -> go through dict here?
+                drug=r['DRUG'],
+                drug_name_poe=r['DRUG_NAME_POE'],
+                drug_name_generic=r['DRUG_NAME_GENERIC'],
+                formulary_drug_cd=r['FORMULARY_DRUG_CD'],
+                gsn=r['GSN'],
+                ndc=r['NDC'],
+                prod_strength=r['PROD_STRENGHT'],
+                dose_val_rx=r['DOSE_VAL_RX'],
+                dose_unit_rx=r['DOSE_UNIT_RX'],
+                form_val_disp=r['FORM_VAL_DISP'],
+                form_unit_disp=r['FORM_UNIT_DISP'],
+                route=r['ROUTE']
+            )
+            m.save()
 
 def main():
     # setup
     django.setup()
 
     # go
-    # generate_patients_and_admissions()
+    generate_patients_and_admissions()
     generate_descriptors()
+    generate_presriptions()
     print('DONE')
 
 
