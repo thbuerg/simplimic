@@ -50,8 +50,8 @@ def generate_patients_and_admissions():
         )
         # patient_models.append(m)
         m.save()
-        # this would be the bulk insert command - might be useful for large datasets - time seris info etc
-        #Patient.objects.bulk_create(patient_models)
+    # this would be the bulk insert command - might be useful for large datasets - time seris info etc
+    #Patient.objects.bulk_create(patient_models)
         
     # free up mem:
     del patients
