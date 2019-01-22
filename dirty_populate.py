@@ -72,7 +72,7 @@ def generate_patients_and_admissions():
         )
         m.save()
 
-def generate_chartevents():
+def generate_descriptors(kind='charts'):
     """
     Generates the chartevents table. As the table comes in  stacked long-format, it first has to be formated by:
         - hadmID
@@ -80,8 +80,36 @@ def generate_chartevents():
         - then models are generated per descriptor
     :return:
     """
-    pass
-    
+    # read in the charts files:
+    assert kind in ['charts', 'lab'], 'kind   must be one of: `charts`, `lab`'
+    fname = 'chart_filt_all.csv' if kind == 'charts' else 'lab_filt_all.csv'
+
+    records = pd.read_csv(os.path.join(DATADIR, fname))
+
+    for admid, events_per_adm in records.groupby('HADM_ID'):
+        pids = events_per_adm['SUBJECT_ID'].unique()
+        assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
+
+        a = Admission.objects.get(admID=admid)
+        p = Patient.objects.get(subjectID=pids[0])
+
+        # loop over all descriptors and instatiate them all:
+        events_per_adm.set_index('ITEMID', inplace=True)
+
+        for item in events_per_adm.index.unique():
+            item_df = events_per_adm.loc[item]  # TODO: this .loc might be removed? -> Check! (or keep it if iterrows() is faster then)
+            for i, r in item_df.iterrows():
+                m = DescriptorValue(
+                    subject=p,
+                    admission=a,
+                    itemID=item,
+                    chart_time=r['CHARTTIME'],
+                    value=r['VALUE'],
+                    unit=r['VALUEUOM'],
+                    flag=r['FLAG'] if kind == 'lab' else None,  # TODO: this LOOKS SLOOOOOOWWWW -> get rid of cond?
+                    kind='L' if kind == 'lab' else 'C'          # TODO:    ^
+                )
+                m.save()
 
 
 def main():
@@ -90,8 +118,7 @@ def main():
 
     # go
     # generate_patients_and_admissions()
-    generate_chartevents()
-
+    generate_descriptors()
     print('DONE')
 
 

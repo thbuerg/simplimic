@@ -41,7 +41,7 @@ class Admission(models.Model):
     plos = models.BooleanField(default=None)  # prolonged length of stay
 
 
-class Descriptor(models.Model):
+class DescriptorValue(models.Model):
     """
     This holds a single lab value
     itemID
@@ -59,6 +59,7 @@ class Descriptor(models.Model):
     value = models.FloatField(default=None)
     unit = models.CharField(max_length=10)
     flag = models.CharField(max_length=8) # abnormal or normal
+    kind = models.CharField(max_length=1)  # either L -> lab or C -> chart
 
 
 class Sevice(models.Model):
