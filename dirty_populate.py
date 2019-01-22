@@ -22,10 +22,12 @@ def djangify_dataframe(df, model):
         collection.append(m)
 
 
-def generate_patients():
+def generate_patients_and_admissions():
     # read in the cleaned admission file and create patients:
     adm_filt_df = pd.read_csv(os.path.join(DATADIR, 'admission_events_all.csv'))
     adm_filt_df.set_index('SUBJECT_ID')
+
+    # patients:
     patients = adm_filt_df.loc[~adm_filt_df.index.duplicated(keep='first')]
     patients.drop(['HADM_ID',
                    'ADMITTIME',
@@ -47,7 +49,39 @@ def generate_patients():
             date_of_birth = r['DOB']
         )
         # patient_models.append(m)
-        m.save()  # TODO: check if this is performant or if its  better todo w/ a single save!
+        m.save()
+
+    # free up mem:
+    del patients
+
+    # Admission periods:
+    for i, r in adm_filt_df.iterrows():
+        # get the Patient first
+        p = Patient.objects.get(subjectID=i)
+        m = Admission(
+            subject=p,
+            admID=r['HADM_ID'],
+            adm_time=r['ADMITTIME'],
+            disch_time=r['DISCHTIME'],
+            adm_type=r['ADMISSION_TYPE'],  # TODO: convert to the choice we set first?!
+            inpmor=r['INPMOR'],
+            pdimor=r['PDIMOR'],
+            read=r['READ'],
+            los=r['LOS'],
+            plos=r['PLOS']
+        )
+        m.save()
+
+def generate_chartevents():
+    """
+    Generates the chartevents table. As the table comes in  stacked long-format, it first has to be formated by:
+        - hadmID
+        - then itemID
+        - then models are generated per descriptor
+    :return:
+    """
+    pass
+    
 
 
 def main():
@@ -55,9 +89,11 @@ def main():
     django.setup()
 
     # go
-    generate_patients()
+    # generate_patients_and_admissions()
+    generate_chartevents()
+
     print('DONE')
-    
+
 
 if __name__ == '__main__':
     main()
