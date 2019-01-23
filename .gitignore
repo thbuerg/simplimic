@@ -3,3 +3,6 @@
 */.idead/*
 */__pycache__/*
 __pycache__/*
+db.sqlite3*
+simplimicapp/migrations/000*
+playground*

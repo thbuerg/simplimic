@@ -5,7 +5,7 @@ class Patient(models.Model):
     """
     The patient class for MIMIC-III.
     """
-    subjectID = models.IntegerField(default=None)
+    subjectID = models.IntegerField(default=None, primary_key=True)
     gender = models.CharField(max_length=1)
     age = models.IntegerField(default=0)
     date_of_birth = models.DateField(default=None)
@@ -28,7 +28,7 @@ class Admission(models.Model):
 
     # meta
     subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admID = models.IntegerField(default=None)
+    admID = models.IntegerField(default=None,  primary_key=True)
     adm_time = models.DateTimeField(default=None)
     disch_time = models.DateTimeField(default=None)
     adm_type = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=2)
@@ -54,7 +54,7 @@ class DescriptorValue(models.Model):
     admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
 
     # Fields:
-    itemID = models.IntegerField(default=None)
+    itemID = models.IntegerField(default=None, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
     chart_time = models.DateTimeField(default=None)
     value = models.CharField(default=None, max_length=10)
     unit = models.CharField(max_length=10)
@@ -80,7 +80,7 @@ class Diagnosis(models.Model):
 
     # fields
     seq_num = models.IntegerField(default=None, max_length=1)     # e.g. the rank of the diagnosis in the end of the admission
-    icd_code = models.IntegerField(max_length=6)
+    icd_code = models.IntegerField(max_length=6, primary_key=True)
     icd_class = models.IntegerField(max_length=2)
 
 
@@ -104,7 +104,7 @@ class Prescription(models.Model):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1)
-    drug = models.CharField(default=None, max_length=25)
+    drug = models.CharField(default=None, max_length=25, primary_key=True)   # TODO: check  if we want primary key here
     drug_name_poe = models.CharField(default=None, max_length=25)
     drug_name_generic = models.CharField(default=None, max_length=25)
     formulary_drug_cd = models.CharField(default=None, max_length=15)
@@ -116,4 +116,3 @@ class Prescription(models.Model):
     form_val_disp = models.CharField(default=None, max_length=25)  # can't take  float here as there are ranges somtimes
     form_unit_disp = models.CharField(default=None, max_length=25)
     route = models.CharField(default=None, max_length=25)   # TODO: establish a CHOICE set here that is hierarchical!
-
