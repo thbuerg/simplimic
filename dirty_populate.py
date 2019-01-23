@@ -25,10 +25,10 @@ def djangify_dataframe(df, model):
 def generate_patients_and_admissions():
     # read in the cleaned admission file and create patients:
     adm_filt_df = pd.read_csv(os.path.join(DATADIR, 'admission_events_all.csv'))
-    adm_filt_df.set_index('SUBJECT_ID')
+    adm_filt_df.set_index('SUBJECT_ID', inplace=True)
 
     # patients:
-    patients = adm_filt_df.loc[~adm_filt_df.index.duplicated(keep='first')]
+    patients = adm_filt_df.copy()
     patients.drop(['HADM_ID',
                    'ADMITTIME',
                    'DISCHTIME',
@@ -38,6 +38,7 @@ def generate_patients_and_admissions():
                    'READ',
                    'LOS',
                    'PLOS',], axis=1, inplace=True)
+    patients = patients.loc[~patients.index.duplicated(keep='first')]
 
     # generate an django entry for each row:
     # patient_models = []
@@ -57,7 +58,7 @@ def generate_patients_and_admissions():
     # Admission periods:
     for i, r in adm_filt_df.iterrows():
         # get the Patient first
-        p = Patient.objects.get(subjectID=i)
+        p = Patient.objects.get_or_create(subjectID=i)[0]
         m = Admission(
             subject=p,
             admID=r['HADM_ID'],
@@ -65,7 +66,7 @@ def generate_patients_and_admissions():
             disch_time=r['DISCHTIME'],
             adm_type=r['ADMISSION_TYPE'],  # TODO: convert to the choice we set first?!
             inpmor=r['INPMOR'],
-            pdimor=r['PDIMOR'],
+            pdismor=r['PDISMOR'],
             read=r['READ'],
             los=r['LOS'],
             plos=r['PLOS']
@@ -90,26 +91,27 @@ def generate_descriptors(kind='charts'):
         pids = events_per_adm['SUBJECT_ID'].unique()
         assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
 
-        a = Admission.objects.get(admID=admid)
-        p = Patient.objects.get(subjectID=pids[0])
+        a = Admission.objects.get_or_create(admID=admid)[0]
+        p = Patient.objects.get_or_create(subjectID=pids[0])[0]
 
         # loop over all descriptors and instatiate them all:
         events_per_adm.set_index('ITEMID', inplace=True)
 
-        for item in events_per_adm.index.unique():
-            item_df = events_per_adm.loc[item]  # TODO: this .loc might be removed? -> Check! (or keep it if iterrows() is faster then)
-            for i, r in item_df.iterrows():
-                m = DescriptorValue(
-                    subject=p,
-                    admission=a,
-                    itemID=item,
-                    chart_time=r['CHARTTIME'],
-                    value=r['VALUE'],
-                    unit=r['VALUEUOM'],
-                    flag=r['FLAG'] if kind == 'lab' else None,  # TODO: this LOOKS SLOOOOOOWWWW -> get rid of cond?
-                    kind='L' if kind == 'lab' else 'C'          # TODO:    ^
-                )
-                m.save()
+        # for item in events_per_adm.index.unique():
+        #     item_df = events_per_adm.loc[item]  # TODO: this .loc might be removed? -> Check! (or keep it if iterrows() is faster then)
+        #     for i, r in item_df.iterrows():
+        for item, r in events_per_adm.iterrows():
+            m = DescriptorValue(
+                subject=p,
+                admission=a,
+                itemID=item,
+                chart_time=r['CHARTTIME'],
+                value=r['VALUE'],
+                unit=r['VALUEUOM'],
+                kind='L' if kind == 'lab' else 'C',          # TODO: this LOOKS SLOOOOOOWWWW -> get rid of cond?
+                flag=r['FLAG'] if kind == 'lab' else None,   # TODO:    ^
+            )
+            m.save()
 
 def generate_presriptions():
     """
@@ -122,8 +124,8 @@ def generate_presriptions():
         pids = events_per_adm['SUBJECT_ID'].unique()
         assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
 
-        a = Admission.objects.get(admID=admid)
-        p = Patient.objects.get(subjectID=pids[0])
+        a = Admission.objects.get_or_create(admID=admid)[0]
+        p = Patient.objects.get_or_create(subjectID=pids[0])[0]
 
         for i, r in drugs_per_adm.iterrows():
             m = Prescription(

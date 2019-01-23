@@ -35,7 +35,7 @@ class Admission(models.Model):
 
     # Outcomes
     inpmor = models.BooleanField(default=None)  # in-hospital death
-    pdimor = models.BooleanField(default=None)  # past discharge death (within 30 days)
+    pdismor = models.BooleanField(default=None)  # past discharge death (within 30 days)
     read = models.BooleanField(default=None)  # readmission (within 30)
     los = models.IntegerField(default=0)  # length of stay (in days)
     plos = models.BooleanField(default=None)  # prolonged length of stay
@@ -56,9 +56,9 @@ class DescriptorValue(models.Model):
     # Fields:
     itemID = models.IntegerField(default=None)
     chart_time = models.DateTimeField(default=None)
-    value = models.FloatField(default=None)
+    value = models.CharField(default=None, max_length=10)
     unit = models.CharField(max_length=10)
-    flag = models.CharField(max_length=8) # abnormal or normal
+    flag = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal
     kind = models.CharField(max_length=1)  # either L -> lab or C -> chart
 
 
