@@ -1,4 +1,4 @@
-import os
+import os, sys
 os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
 import django
 django.setup()
@@ -6,7 +6,8 @@ import pandas as pd
 from simplimicapp.models import *
 
 # some dirty FLAGS:
-DATADIR = '/Users/buergelt/projects/thesis/data/mimic_proc_all'
+#DATADIR = '/Users/buergelt/projects/thesis/data/mimic_proc_all'
+DATADIR= sys.argv[1]
 
 def djangify_dataframe(df, model):
     """
@@ -28,6 +29,7 @@ def generate_patients_and_admissions():
     adm_filt_df.set_index('SUBJECT_ID', inplace=True)
 
     # patients:
+    print('Patients...')
     patients = adm_filt_df.copy()
     patients.drop(['HADM_ID',
                    'ADMITTIME',
@@ -56,7 +58,9 @@ def generate_patients_and_admissions():
         
     # free up mem:
     del patients
+    print('DONE')
 
+    print('Admissions...')
     # Admission periods:
     for i, r in adm_filt_df.iterrows():
         # get the Patient first
@@ -74,6 +78,7 @@ def generate_patients_and_admissions():
             plos=r['PLOS']
         )
         m.save()
+    print('DONE')
 
 def generate_descriptors(kind='charts'):
     """
@@ -88,6 +93,7 @@ def generate_descriptors(kind='charts'):
     fname = 'chart_filt_all.csv' if kind == 'charts' else 'lab_filt_all.csv'
 
     records = pd.read_csv(os.path.join(DATADIR, fname))
+    print('Found %d records to generate from file: %s' % (records.shape[0], fname))
 
     for admid, events_per_adm in records.groupby('HADM_ID'):
         pids = events_per_adm['SUBJECT_ID'].unique()
@@ -114,6 +120,7 @@ def generate_descriptors(kind='charts'):
                 flag=r['FLAG'] if kind == 'lab' else None,   # TODO:    ^
             )
             m.save()
+    print('DONE')
 
 def generate_presriptions():
     """
@@ -121,6 +128,8 @@ def generate_presriptions():
     :return:
     """
     records = pd.read_csv(os.path.join(DATADIR, 'presc_filt_all.csv'))
+
+    print('Found %d records to generate from file: %s' % (records.shape[0], os.path.join(DATADIR,  'presc_filt_all.csv')))
 
     for admid, events_per_adm in records.groupby('HADM_ID'):
         pids = events_per_adm['SUBJECT_ID'].unique()
@@ -150,14 +159,18 @@ def generate_presriptions():
                 route=r['ROUTE']
             )
             m.save()
+    print('DONE')
 
 def main():
     # setup
     django.setup()
 
     # go
+    print('Generating Patients and Admissions:')
     generate_patients_and_admissions()
+    print('Generating descriptors:')
     generate_descriptors()
+    print('Generating prescriptions:')
     generate_presriptions()
     print('DONE')
 
