@@ -43,7 +43,7 @@ def generate_patients_and_admissions():
     patients = patients.loc[~patients.index.duplicated(keep='first')]
 
     # generate an django entry for each row:
-    # patient_models = []
+    models = []
     for i, r in patients.iterrows():
         m = Patient(
             subjectID = i,
@@ -52,16 +52,17 @@ def generate_patients_and_admissions():
             date_of_birth = r['DOB']
         )
         # patient_models.append(m)
-        m.save()
-    # this would be the bulk insert command - might be useful for large datasets - time seris info etc
-    #Patient.objects.bulk_create(patient_models)
-        
+        # m.save()
+        models.append(m)
+    Patient.objects.bulk_create(models)
+
     # free up mem:
     del patients
     print('DONE')
 
     print('Admissions...')
     # Admission periods:
+    models = []
     for i, r in adm_filt_df.iterrows():
         # get the Patient first
         p = Patient.objects.get_or_create(subjectID=i)[0]
@@ -77,7 +78,9 @@ def generate_patients_and_admissions():
             los=r['LOS'],
             plos=r['PLOS']
         )
-        m.save()
+        # m.save()
+        models.append(m)
+    Admission.objects.bulk_create(models)
     print('DONE')
 
 def generate_descriptors(kind='charts'):
@@ -108,6 +111,7 @@ def generate_descriptors(kind='charts'):
         # for item in events_per_adm.index.unique():
         #     item_df = events_per_adm.loc[item]  # TODO: this .loc might be removed? -> Check! (or keep it if iterrows() is faster then)
         #     for i, r in item_df.iterrows():
+        models = []
         for item, r in events_per_adm.iterrows():
             m = DescriptorValue(
                 subject=p,
@@ -119,7 +123,10 @@ def generate_descriptors(kind='charts'):
                 kind='L' if kind == 'lab' else 'C',          # TODO: this LOOKS SLOOOOOOWWWW -> get rid of cond?
                 flag=r['FLAG'] if kind == 'lab' else None,   # TODO:    ^
             )
-            m.save()
+            # m.save()
+            models.append(m)
+        DescriptorValue.objects.bulk_create(models)
+
     print('DONE')
 
 def generate_presriptions():
@@ -138,6 +145,7 @@ def generate_presriptions():
         a = Admission.objects.get_or_create(admID=admid)[0]
         p = Patient.objects.get_or_create(subjectID=pids[0])[0]
 
+        models = []
         for i, r in drugs_per_adm.iterrows():
             m = Prescription(
                 subject=p,
@@ -158,8 +166,11 @@ def generate_presriptions():
                 form_unit_disp=r['FORM_UNIT_DISP'],
                 route=r['ROUTE']
             )
-            m.save()
+            # m.save()
+            models.append(m)
+        Prescription.objects.bulk_create(models)
     print('DONE')
+
 
 def main():
     # setup
@@ -168,10 +179,10 @@ def main():
     # go
     print('Generating Patients and Admissions:')
     generate_patients_and_admissions()
-    # print('Generating descriptors:')
-    # generate_descriptors()
-    # print('Generating prescriptions:')
-    # generate_presriptions()
+    print('Generating descriptors:')
+    generate_descriptors()
+    print('Generating prescriptions:')
+    generate_presriptions()
     print('DONE')
 
 
