@@ -54,7 +54,7 @@ class DescriptorValue(models.Model):
     admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
 
     # Fields:
-    itemID = models.IntegerField(default=None, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
+    itemID = models.IntegerField(default=None)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
     chart_time = models.DateTimeField(default=None)
     value = models.CharField(default=None, max_length=10)
     unit = models.CharField(max_length=10)
@@ -104,7 +104,7 @@ class Prescription(models.Model):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1)
-    drug = models.CharField(default=None, max_length=25, primary_key=True)   # TODO: check  if we want primary key here
+    drug = models.CharField(default=None, max_length=25)#, primary_key=True)   # TODO: check  if we want primary key here
     drug_name_poe = models.CharField(default=None, max_length=25)
     drug_name_generic = models.CharField(default=None, max_length=25)
     formulary_drug_cd = models.CharField(default=None, max_length=15)
