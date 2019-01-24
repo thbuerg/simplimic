@@ -4,7 +4,7 @@
 simplimic/__pycache__/*
 simplimic/__pycache__
 __pycache__/*
-db.sqlite3
+db.sqlite3*
 simplimicapp/__pycache__/*
 simplimicapp/__pycache__
 simplimicapp/migrations/000*

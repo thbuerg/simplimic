@@ -138,13 +138,13 @@ def generate_presriptions():
 
     print('Found %d records to generate from file: %s' % (records.shape[0], os.path.join(DATADIR,  'presc_filt_all.csv')))
 
-    for admid, events_per_adm in records.groupby('HADM_ID'):
-        pids = events_per_adm['SUBJECT_ID'].unique()
+    for admid, drugs_per_adm in records.groupby('HADM_ID'):
+        pids = drugs_per_adm['SUBJECT_ID'].unique()
         assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
 
         a = Admission.objects.get_or_create(admID=admid)[0]
         p = Patient.objects.get_or_create(subjectID=pids[0])[0]
-
+        
         models = []
         for i, r in drugs_per_adm.iterrows():
             m = Prescription(
@@ -152,14 +152,14 @@ def generate_presriptions():
                 admission=a,
                 start_date=r['STARTDATE'],
                 end_date=r['ENDDATE'],
-                drug_type=r['DRUGTYPE'],     # TODO -> go through dict here?
+                drug_type=r['DRUG_TYPE'],     # TODO -> go through dict here?
                 drug=r['DRUG'],
                 drug_name_poe=r['DRUG_NAME_POE'],
                 drug_name_generic=r['DRUG_NAME_GENERIC'],
                 formulary_drug_cd=r['FORMULARY_DRUG_CD'],
                 gsn=r['GSN'],
                 ndc=r['NDC'],
-                prod_strength=r['PROD_STRENGHT'],
+                prod_strength=r['PROD_STRENGTH'],
                 dose_val_rx=r['DOSE_VAL_RX'],
                 dose_unit_rx=r['DOSE_UNIT_RX'],
                 form_val_disp=r['FORM_VAL_DISP'],
@@ -178,9 +178,9 @@ def main():
 
     # go
     print('Generating Patients and Admissions:')
-    generate_patients_and_admissions()
+    #generate_patients_and_admissions()
     print('Generating descriptors:')
-    generate_descriptors()
+    #generate_descriptors()
     print('Generating prescriptions:')
     generate_presriptions()
     print('DONE')
