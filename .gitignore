@@ -3,3 +3,10 @@
 */.idead/*
 */__pycache__/*
 __pycache__/*
+db.sqlite3
+simplimicapp/migrations/000*
+simplimicapp/migrations/__pycache__
+simplimicapp/migrations/__pycache__/*
+bak.*
+playground*
+cluster_init.sh
