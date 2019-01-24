@@ -168,10 +168,10 @@ def main():
     # go
     print('Generating Patients and Admissions:')
     generate_patients_and_admissions()
-    print('Generating descriptors:')
-    generate_descriptors()
-    print('Generating prescriptions:')
-    generate_presriptions()
+    # print('Generating descriptors:')
+    # generate_descriptors()
+    # print('Generating prescriptions:')
+    # generate_presriptions()
     print('DONE')
 
 
