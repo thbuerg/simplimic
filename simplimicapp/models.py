@@ -79,9 +79,9 @@ class Diagnosis(models.Model):
     admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
 
     # fields
-    seq_num = models.IntegerField(default=None, max_length=1)     # e.g. the rank of the diagnosis in the end of the admission
-    icd_code = models.IntegerField(max_length=6, primary_key=True)
-    icd_class = models.IntegerField(max_length=2)
+    seq_num = models.IntegerField(default=None)     # e.g. the rank of the diagnosis in the end of the admission
+    icd_code = models.IntegerField(primary_key=True)
+    icd_class = models.IntegerField()
 
 
 class Prescription(models.Model):
@@ -108,8 +108,8 @@ class Prescription(models.Model):
     drug_name_poe = models.CharField(default=None, max_length=25)
     drug_name_generic = models.CharField(default=None, max_length=25)
     formulary_drug_cd = models.CharField(default=None, max_length=15)
-    gsn = models.IntegerField(default=None, max_length=15)
-    ndc = models.FloatField(default=None, max_length=25)
+    gsn = models.FloatField(default=None)  # this is mostly INTs but some NaNs  disallow intfield.
+    ndc = models.FloatField(default=None)
     prod_strength = models.CharField(default=None, max_length=25)
     dose_val_rx = models.CharField(default=None, max_length=25)  # can't take  float here as there are ranges somtimes
     dose_unit_rx = models.CharField(default=None, max_length=25)
