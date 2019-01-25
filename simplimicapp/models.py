@@ -107,6 +107,7 @@ class DescriptorValue(models.Model):
     store_time = models.DateTimeField(default=None, null=True, blank=True)
     cgID = models.CharField(default=None, max_length=10, null=True, blank=True)
     value = models.CharField(default=None, max_length=10)
+    valuenum = models.FloatField(default=None)  # TOOD check if float is safe here
     unit = models.CharField(max_length=10)
     warning = models.BooleanField(default=None, null=True, blank=True)
     error = models.BooleanField(default=None, null=True, blank=True)

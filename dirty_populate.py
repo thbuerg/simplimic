@@ -22,66 +22,123 @@ def djangify_dataframe(df, model):
         m = None
         collection.append(m)
 
-
-def generate_patients_and_admissions():
+def generate_patients():
+    """
+    Populate the database with patients from PATIENTS.csv  (MIMIC_raw)
+    :return:
+    """
+    print('Generating Patients...')
     # read in the cleaned admission file and create patients:
-    adm_filt_df = pd.read_csv(os.path.join(DATADIR, 'admission_events_all.csv'))
-    adm_filt_df.set_index('SUBJECT_ID', inplace=True)
+    patients_df = pd.read_csv(os.path.join(DATADIR, 'PATIENTS.csv'))
+    patients_df.set_index('SUBJECT_ID', inplace=True)
 
-    # patients:
-    print('Patients...')
-    patients = adm_filt_df.copy()
-    patients.drop(['HADM_ID',
-                   'ADMITTIME',
-                   'DISCHTIME',
-                   'ADMISSION_TYPE',
-                   'INPMOR',
-                   'PDISMOR',
-                   'READ',
-                   'LOS',
-                   'PLOS',], axis=1, inplace=True)
-    patients = patients.loc[~patients.index.duplicated(keep='first')]
+    # TODO: this probably better done in the prepopprocessing
+    patients_df = patients_df.loc[~patients_df.index.duplicated(keep='first')]
 
     # generate an django entry for each row:
     models = []
-    for i, r in patients.iterrows():
+    for i, r in patients_df.iterrows():
         m = Patient(
-            subjectID = i,
-            gender = r['GENDER'],
-            age = r['AGE'],
-            date_of_birth = r['DOB']
+            subjectID=i,
+            gender=r['GENDER'],
+            age=r['AGE'],
+            date_of_birth=r['DOB'],
+            date_of_death=r['DOD'],
+            date_of_death_hosp=r['DOD_HOSP'],
+            date_of_death_ssn=r['DOD_SSN'],
+            expire_flag=r['EXPIRE_FLAG'],
         )
-        # patient_models.append(m)
-        # m.save()
         models.append(m)
     Patient.objects.bulk_create(models)
 
-    # free up mem:
-    del patients
     print('DONE')
 
-    print('Admissions...')
-    # Admission periods:
+
+def generate_admissions():
+    """
+    Populate the database with admission from the MIMIC-raw ADMISSIONS.csv
+    "ROW_ID","SUBJECT_ID","HADM_ID","ADMITTIME","DISCHTIME","DEATHTIME","ADMISSION_TYPE","ADMISSION_LOCATION", \
+    "DISCHARGE_LOCATION","INSURANCE","LANGUAGE","RELIGION","MARITAL_STATUS","ETHNICITY","EDREGTIME","EDOUTTIME", \
+    "DIAGNOSIS","HOSPITAL_EXPIRE_FLAG","HAS_CHARTEVENTS_DATA"
+    :return:
+    """
+    print('Generating Admissions...')
+
+    adm_df = pd.read_csv(os.path.join(DATADIR, 'ADMISSIONS.csv'))
+    adm_df.set_index('SUBJECT_ID', inplace=True)
+
+    # generate an django entry for each row:
     models = []
-    for i, r in adm_filt_df.iterrows():
-        # get the Patient first
+    for i, r in adm_df.iterrows():
         p = Patient.objects.get_or_create(subjectID=i)[0]
         m = Admission(
-            subject=p,
+            subject = p,
             admID=r['HADM_ID'],
             adm_time=r['ADMITTIME'],
             disch_time=r['DISCHTIME'],
-            adm_type=r['ADMISSION_TYPE'],  # TODO: convert to the choice we set first?!
-            inpmor=r['INPMOR'],
-            pdismor=r['PDISMOR'],
-            read=r['READ'],
-            los=r['LOS'],
-            plos=r['PLOS']
+            death_time=r['DEATHTIME'],
+            adm_type=r['ADMISSION_TYPE'],
+            adm_location=r['ADMISSION_LOCATION'],
+            disch_location=r['DISCHARGE_LOCATION'],
+            insurance=r['INSURANCE'],
+            language=r['LANGUAGE'],
+            religion=r['RELIGION'],
+            marital_status=r['MARITAL_STATUS'],
+            ethnicity = r['ETHNICITY'],
+            edregtime = r['EDREGTIME'],
+            edouttime = r['EDOUTTIME'],
+            diagnosis = r['DIAGNOSIS'],
+            hosp_exp_flag = r['HOSPITAL_EXPIRE_FLAG'],
+            has_chartevents =r['HAS_CHARTEVENTS_DATA']
         )
-        # m.save()
         models.append(m)
-    Admission.objects.bulk_create(models)
+        Admission.objects.bulk_create(models)
+
     print('DONE')
+
+
+def generate_icustays():
+    """
+    Populate the database with icu stays from the MIMIC-raw ICUSTAYS.csv
+   "ROW_ID","SUBJECT_ID","HADM_ID","ICUSTAY_ID","DBSOURCE","FIRST_CAREUNIT","LAST_CAREUNIT","FIRST_WARDID", \\
+   "LAST_WARDID","INTIME","OUTTIME","LOS"
+
+    :return:
+    """
+    print('Generating ICUstays...')
+    stays_df = pd.read_csv(os.path.join(DATADIR, 'ICUSTAYS.csv'))
+    stays_df.set_index('ICUSTAY_ID', inplace=True)
+
+    # generate an django entry for each row:
+    for admID, stays_per_adm_df in stays_df.groupby(stays_df['HADM_ID']):
+        pids = stays_per_adm_df['SUBJECT_ID'].unique()
+        assert pids.shape[0] == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
+
+        p = Patient.objects.get_or_create(subjectID=pids[0])[0]
+        a = Admission.objects.get_or_create(admID=admID)[0]
+
+        models = []
+
+        for i, r in stays_df.iterrows():
+            m = ICUstay(
+                subject = p,
+                admission=a,
+                icustayID=i,
+                db_source=r['DBSOURCE'],
+                first_cu= r['FIRST_CAREUNIT'],
+                last_cu=r['LAST_CAREUNIT'],
+                first_ward_id=r['FIRST_WARDID'],
+                last_ward_id=r['LAST_WARDID'],
+                intime=r['INTIME'],
+                outtime=r['OUTTIME'],
+                los=r['LOS']
+            )
+            models.append(m)
+
+    ICUstay.objects.bulk_create(models)   # TODO maybe better within the outer for loop?
+
+    print('DONE')
+
 
 def generate_descriptors(kind='charts'):
     """
@@ -92,64 +149,100 @@ def generate_descriptors(kind='charts'):
     :return:
     """
     # read in the charts files:
-    assert kind in ['charts', 'lab'], 'kind   must be one of: `charts`, `lab`'
-    fname = 'chart_filt_all.csv' if kind == 'charts' else 'lab_filt_all.csv'
 
+    assert kind in ['charts', 'lab'], 'kind   must be one of: `charts`, `lab`'
+    print('Generating %sevents...' % kind)
+
+    fname = 'CHARTEVENTS.csv' if kind == 'charts' else 'LABEVENTS.csv'
     records = pd.read_csv(os.path.join(DATADIR, fname))
+
     print('Found %d records to generate from file: %s' % (records.shape[0], fname))
 
-    for admid, events_per_adm in records.groupby('HADM_ID'):
-        pids = events_per_adm['SUBJECT_ID'].unique()
-        assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
+    for icustay_id, events_per_icustay in records.groupby('ICUSTAY_ID'):
+        # enforce many to one:
+        pids = events_per_icustay['SUBJECT_ID'].unique()
+        assert pids.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Patients.'
+        adms = events_per_icustay['HADM_ID'].unique()
+        assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions.'
 
-        a = Admission.objects.get_or_create(admID=admid)[0]
+        a = Admission.objects.get_or_create(admID=e)[0]
         p = Patient.objects.get_or_create(subjectID=pids[0])[0]
+        i = ICUstay.objects.get_or_create(icustayID=icustay_id)[0]
 
         # loop over all descriptors and instatiate them all:
-        events_per_adm.set_index('ITEMID', inplace=True)
+        events_per_icustay.set_index('ITEMID', inplace=True)
 
-        # for item in events_per_adm.index.unique():
-        #     item_df = events_per_adm.loc[item]  # TODO: this .loc might be removed? -> Check! (or keep it if iterrows() is faster then)
-        #     for i, r in item_df.iterrows():
         models = []
-        for item, r in events_per_adm.iterrows():
+        for item, r in events_per_icustay.iterrows():
+
+            # tried to reduce the number of condition  checks here in the inner loop, but this solution is ugly...
+            if kind == 'lab':
+                KIND = 'L'
+                WARNING = None
+                ERROR = None
+                RESULTSTATUS = None
+                STOPPED = None
+                FLAG = None
+
+            else:
+                KIND = None
+                WARNING = r['WARNING']
+                ERROR = r['ERROR']
+                RESULTSTATUS = r['RESULTSTATUS']
+                STOPPED = r['STOPPED']
+                FLAG = r['FLAG']
+
             m = DescriptorValue(
                 subject=p,
                 admission=a,
-                itemID=item,
+                icustay=i,
+                itemID = r['ITEMID'],
                 chart_time=r['CHARTTIME'],
+                store_time=r['STORETIME'],
+                cgID =r['CGID'],
                 value=r['VALUE'],
+                valuenum=r['VALUENUM'],
                 unit=r['VALUEUOM'],
-                kind='L' if kind == 'lab' else 'C',          # TODO: this LOOKS SLOOOOOOWWWW -> get rid of cond?
-                flag=r['FLAG'] if kind == 'lab' else None,   # TODO:    ^
+                warning=WARNING,
+                error=ERROR,
+                resultstatus=RESULTSTATUS,
+                stopped=STOPPED,
+                kind=KIND,
+                flag=FLAG
             )
-            # m.save()
             models.append(m)
         DescriptorValue.objects.bulk_create(models)
 
     print('DONE')
+
 
 def generate_presriptions():
     """
     GEnerate the entries for the prescriptions.
     :return:
     """
+    print('Generating prescriptions...')
+
     records = pd.read_csv(os.path.join(DATADIR, 'presc_filt_all.csv'))
 
     print('Found %d records to generate from file: %s' % (records.shape[0], os.path.join(DATADIR,  'presc_filt_all.csv')))
 
-    for admid, events_per_adm in records.groupby('HADM_ID'):
-        pids = events_per_adm['SUBJECT_ID'].unique()
+    for icustay_id, drugs_per_icustay in records.groupby('ICUSTAY_ID'):
+        pids = drugs_per_icustay['SUBJECT_ID'].unique()
         assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
+        adms = drugs_per_icustay['HADM_ID'].unique()
+        assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions.'
 
-        a = Admission.objects.get_or_create(admID=admid)[0]
+        a = Admission.objects.get_or_create(admID=adms[0])[0]
         p = Patient.objects.get_or_create(subjectID=pids[0])[0]
+        i = ICUstay.objects.get_or_create(icustayID=icustay_id)[0]
 
         models = []
-        for i, r in drugs_per_adm.iterrows():
+        for i, r in drugs_per_icustay.iterrows():
             m = Prescription(
                 subject=p,
                 admission=a,
+                icustay=i,
                 start_date=r['STARTDATE'],
                 end_date=r['ENDDATE'],
                 drug_type=r['DRUGTYPE'],     # TODO -> go through dict here?
@@ -169,6 +262,7 @@ def generate_presriptions():
             # m.save()
             models.append(m)
         Prescription.objects.bulk_create(models)
+
     print('DONE')
 
 
@@ -177,12 +271,18 @@ def main():
     django.setup()
 
     # go
-    print('Generating Patients and Admissions:')
-    generate_patients_and_admissions()
-    print('Generating descriptors:')
+    print('Starting population...')
+
+    generate_patients()
+    generate_admissions()
+    generate_icustays()
     generate_descriptors()
-    print('Generating prescriptions:')
     generate_presriptions()
+
+    # TODO:
+    # generate diagnosis
+    # generate services
+
     print('DONE')
 
 
