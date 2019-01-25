@@ -1,9 +1,12 @@
 .idea
 .idea/*
 */.idead/*
-*/__pycache__/*
+simplimic/__pycache__/*
+simplimic/__pycache__
 __pycache__/*
 db.sqlite3
+simplimicapp/__pycache__/*
+simplimicapp/__pycache__
 simplimicapp/migrations/000*
 simplimicapp/migrations/__pycache__
 simplimicapp/migrations/__pycache__/*
