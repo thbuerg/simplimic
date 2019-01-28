@@ -6,8 +6,8 @@
 # conda activate py37 
 
 # 1. clear db
-touch db.sqlite3
-rm db.sqlite3
+touch db.sqlite3_RAW
+rm db.sqlite3_RAW
 
 # 2. clear migrations
 touch simplimicapp/migrations/000xinitial
@@ -17,5 +17,8 @@ rm simplimicapp/migrations/000*initial*
 python manage.py makemigrations simplimicapp
 
 python manage.py migrate --run-syncdb
+
+# populate:
+python dirty_populate.py $1
 
 echo DONE

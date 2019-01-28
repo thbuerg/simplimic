@@ -41,7 +41,7 @@ def generate_patients():
         m = Patient(
             subjectID=i,
             gender=r['GENDER'],
-            age=r['AGE'],
+            #age=r['AGE'],
             date_of_birth=r['DOB'],
             date_of_death=r['DOD'],
             date_of_death_hosp=r['DOD_HOSP'],
@@ -87,7 +87,7 @@ def generate_admissions():
             ethnicity = r['ETHNICITY'],
             edregtime = r['EDREGTIME'],
             edouttime = r['EDOUTTIME'],
-            diagnosis = r['DIAGNOSIS'],
+            init_diagnosis = r['DIAGNOSIS'],
             hosp_exp_flag = r['HOSPITAL_EXPIRE_FLAG'],
             has_chartevents =r['HAS_CHARTEVENTS_DATA']
         )

@@ -12,10 +12,10 @@ class Patient(models.Model):
     subjectID = models.IntegerField(default=None, primary_key=True)
     gender = models.CharField(max_length=10)
     age = models.IntegerField(default=0)
-    date_of_birth = models.DateField(default=None)
-    date_of_death = models.DateField(default=None)
-    date_of_death_hosp = models.DateField(default=None)
-    date_of_death_ssn = models.DateField(default=None)   # ssn = stationary?
+    date_of_birth = models.CharField(default=None, max_length=20)
+    date_of_death = models.CharField(default=None, max_length=20)
+    date_of_death_hosp = models.CharField(default=None, max_length=20)
+    date_of_death_ssn = models.CharField(default=None, max_length=20)   # ssn = stationary?
     expire_flag = models.BooleanField(default=None)   # TODO: is there a default?
 
 
@@ -36,10 +36,10 @@ class Admission(models.Model):
 
     # meta
     subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admID = models.IntegerField(default=None,  primary_key=True)
-    adm_time = models.DateTimeField(default=None)
-    disch_time = models.DateTimeField(default=None)
-    death_time = models.DateTimeField(default=None)
+    admID = models.IntegerField(default=None,  primary_key=False, null=True, blank=True) # TODO: get the not null constraints back one we ran prepopproc!
+    adm_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    disch_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    death_time = models.CharField(default=None, max_length=20, null=True, blank=True)
     adm_type = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=2)
     adm_location = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
     disch_location = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
@@ -48,19 +48,19 @@ class Admission(models.Model):
     religion = models.CharField(default=None, max_length=10)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
     marital_status = models.CharField(default=None, max_length=10)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
     ethnicity = models.CharField(default=None, max_length=50)
-    edregtime = models.DateTimeField(default=None)
-    edouttime = models.DateTimeField(default=None)
-    diagnosis = models.CharField(default=None, max_length=100)  # some of them are really detailed in description -> definitively better to use codes
+    edregtime = models.CharField(default=None, max_length=20)
+    edouttime = models.CharField(default=None, max_length=20)
+    init_diagnosis = models.CharField(default=None, max_length=100)  # some of them are really detailed in description -> definitively better to use codes
     hosp_exp_flag = models.BooleanField(default=None) # TODO find out what this is
     has_chartevents = models.BooleanField(default=None)
 
     # TODO:  these will no longer be part of the admission and will  have to be inferred over the subject.
     # Outcomes
-    inpmor = models.BooleanField(default=None)  # in-hospital death
-    pdismor = models.BooleanField(default=None)  # past discharge death (within 30 days)
-    read = models.BooleanField(default=None)  # readmission (within 30)
-    los = models.IntegerField(default=0)  # length of stay (in days)
-    plos = models.BooleanField(default=None)  # prolonged length of stay
+    inpmor = models.BooleanField(default=None,  null=True, blank=True)  # in-hospital death
+    pdismor = models.BooleanField(default=None,  null=True, blank=True)  # past discharge death (within 30 days)
+    read = models.BooleanField(default=None,  null=True, blank=True)  # readmission (within 30)
+    los = models.IntegerField(default=0,  null=True, blank=True)  # length of stay (in days)
+    plos = models.BooleanField(default=None,  null=True, blank=True)  # prolonged length of stay
 
 
 class ICUstay(models.Model):
@@ -77,8 +77,8 @@ class ICUstay(models.Model):
     last_cu = models.CharField(default=None,  max_length=10)
     first_ward_id = models.IntegerField(default=None)
     last_ward_id = models.IntegerField(default=None)
-    intime = models.DateTimeField(default=None)  # important field.
-    outtime = models.DateTimeField(default=None)  # important field.
+    intime = models.CharField(default=None, max_length=20)  # important field.
+    outtime = models.CharField(default=None, max_length=20)  # important field.
     los = models.IntegerField(default=None)
 
 
@@ -103,8 +103,8 @@ class DescriptorValue(models.Model):
 
     # Fields:
     itemID = models.IntegerField(default=None)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
-    chart_time = models.DateTimeField(default=None)
-    store_time = models.DateTimeField(default=None, null=True, blank=True)
+    chart_time = models.CharField(default=None, max_length=20)
+    store_time = models.CharField(default=None, max_length=20, null=True, blank=True)
     cgID = models.CharField(default=None, max_length=10, null=True, blank=True)
     value = models.CharField(default=None, max_length=10)
     valuenum = models.FloatField(default=None)  # TOOD check if float is safe here
@@ -127,7 +127,7 @@ class Sevice(models.Model):
     admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
 
     # fields:
-    transfertime = models.DateTimeField(default=None)
+    transfertime = models.CharField(default=None, max_length=20)
 
     # TODO: standardize through choices?
     prev_service = models.CharField(default=None, max_length=10)
@@ -170,8 +170,8 @@ class Prescription(models.Model):
     icustay = models.ForeignKey('ICUstay', on_delete=models.CASCADE)
 
     # fields
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField()
+    start_date = models.CharField(default=None, max_length=20)
+    end_date = models.CharField(default=None, max_length=20)
     drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1)
     drug = models.CharField(default=None, max_length=25)#, primary_key=True)   # TODO: check  if we want primary key here
     drug_name_poe = models.CharField(default=None, max_length=25)
