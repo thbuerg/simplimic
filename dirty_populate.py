@@ -66,10 +66,12 @@ def generate_admissions():
 
     adm_df = pd.read_csv(os.path.join(DATADIR, 'ADMISSIONS.csv'))
     adm_df.set_index('SUBJECT_ID', inplace=True)
+    
+
 
     # generate an django entry for each row:
     models = []
-    for i, r in adm_df.iterrows():
+    for i, r in adm_df.iterrows():    
         p = Patient.objects.get_or_create(subjectID=i)[0]
         m = Admission(
             subject = p,
@@ -92,7 +94,8 @@ def generate_admissions():
             has_chartevents =r['HAS_CHARTEVENTS_DATA']
         )
         models.append(m)
-        Admission.objects.bulk_create(models)
+        
+    Admission.objects.bulk_create(models)
 
     print('DONE')
 
@@ -140,7 +143,7 @@ def generate_icustays():
     print('DONE')
 
 
-def generate_descriptors(kind='charts'):
+def generate_chartevents():
     """
     Generates the chartevents table. As the table comes in  stacked long-format, it first has to be formated by:
         - hadmID
@@ -150,10 +153,9 @@ def generate_descriptors(kind='charts'):
     """
     # read in the charts files:
 
-    assert kind in ['charts', 'lab'], 'kind   must be one of: `charts`, `lab`'
-    print('Generating %sevents...' % kind)
+    print('Generating chartevents...')
 
-    fname = 'CHARTEVENTS.csv' if kind == 'charts' else 'LABEVENTS.csv'
+    fname = 'CHARTEVENTS.csv'
     records = pd.read_csv(os.path.join(DATADIR, fname))
 
     print('Found %d records to generate from file: %s' % (records.shape[0], fname))
@@ -173,26 +175,9 @@ def generate_descriptors(kind='charts'):
         events_per_icustay.set_index('ITEMID', inplace=True)
 
         models = []
+        
         for item, r in events_per_icustay.iterrows():
-
-            # tried to reduce the number of condition  checks here in the inner loop, but this solution is ugly...
-            if kind == 'lab':
-                KIND = 'L'
-                WARNING = None
-                ERROR = None
-                RESULTSTATUS = None
-                STOPPED = None
-                FLAG = None
-
-            else:
-                KIND = None
-                WARNING = r['WARNING']
-                ERROR = r['ERROR']
-                RESULTSTATUS = r['RESULTSTATUS']
-                STOPPED = r['STOPPED']
-                FLAG = r['FLAG']
-
-            m = DescriptorValue(
+            m = CartEventValue(
                 subject=p,
                 admission=a,
                 icustay=i,
@@ -203,18 +188,66 @@ def generate_descriptors(kind='charts'):
                 value=r['VALUE'],
                 valuenum=r['VALUENUM'],
                 unit=r['VALUEUOM'],
-                warning=WARNING,
-                error=ERROR,
-                resultstatus=RESULTSTATUS,
-                stopped=STOPPED,
-                kind=KIND,
-                flag=FLAG
+                warning=r['WARNING'],
+                error=r['ERROR'],
+                resultstatus=r['RESULTSTATUS'],
+                stopped=r['STOPPED']
             )
             models.append(m)
-        DescriptorValue.objects.bulk_create(models)
+        CartEventValue.objects.bulk_create(models)
 
     print('DONE')
 
+    
+def generate_labevents():
+    """
+    Generates the labevents table. As the table comes in  stacked long-format, it first has to be formated by:
+        - hadmID
+        - then itemID
+        - then models are generated per descriptor
+    :return:
+    """
+    # read in the charts files:
+
+    print('Generating labevents...')
+
+    fname = 'LABEVENTS.csv'
+    records = pd.read_csv(os.path.join(DATADIR, fname))
+
+    print('Found %d records to generate from file: %s' % (records.shape[0], fname))
+
+    for adm_id, events_per_hadm in records.groupby('HADM_ID'):
+        # enforce many to one:
+        pids = events_per_hadm['SUBJECT_ID'].unique()
+        assert pids.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Patients.'
+
+        a = Admission.objects.get_or_create(admID=adm_id)[0]
+        p = Patient.objects.get_or_create(subjectID=pids[0])[0]
+
+        # loop over all descriptors and instatiate them all:
+        events_per_hadm.set_index('ITEMID', inplace=True)
+
+        models = []
+        
+        for item, r in events_per_hadm.iterrows():
+
+            m = LabEventValue(
+                subject=p,
+                admission=a,
+                itemID = r['ITEMID'],
+                chart_time=r['CHARTTIME'],
+                store_time=r['STORETIME'],
+                cgID =r['CGID'],
+                value=r['VALUE'],
+                valuenum=r['VALUENUM'],
+                unit=r['VALUEUOM'],
+                flag=r['FLAG']
+            )
+            models.append(m)
+        LabEventValue.objects.bulk_create(models)
+
+    print('DONE')
+    
 
 def generate_presriptions():
     """
@@ -276,7 +309,8 @@ def main():
     generate_patients()
     generate_admissions()
     generate_icustays()
-    generate_descriptors()
+    generate_chartevents()
+    generate_labevents()
     generate_presriptions()
 
     # TODO:
