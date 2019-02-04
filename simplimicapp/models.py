@@ -82,7 +82,7 @@ class ICUstay(models.Model):
     los = models.IntegerField(default=None)
 
 
-class DescriptorValue(models.Model):
+class ChartEventValue(models.Model):
     """
     This holds a single lab value
     itemID
@@ -90,11 +90,6 @@ class DescriptorValue(models.Model):
     value
     unit (valueuom)
     """
-    KINDS = (
-        ('L', 'LABEVENT'),
-        ('C', 'CHARTEVENT')
-    )
-
 
     # keys
     subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
@@ -113,9 +108,29 @@ class DescriptorValue(models.Model):
     error = models.BooleanField(default=None, null=True, blank=True)
     resultstatus = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
     stopped = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
-    flag = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
-    kind = models.CharField(max_length=1, choices=KINDS)  # either L -> lab or C -> chart
 
+class LabEventValue(models.Model):
+    """
+    This holds a single lab value
+    itemID
+    timestamps
+    value
+    unit (valueuom)
+    """
+    
+    # keys
+    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
+    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
+
+    # Fields:
+    itemID = models.IntegerField(default=None)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
+    chart_time = models.CharField(default=None, max_length=20)
+    store_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    cgID = models.CharField(default=None, max_length=10, null=True, blank=True)
+    value = models.CharField(default=None, max_length=10)
+    valuenum = models.FloatField(default=None)  # TOOD check if float is safe here
+    unit = models.CharField(max_length=10)
+    flag = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
 
 class Sevice(models.Model):
     """
