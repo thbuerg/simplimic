@@ -36,7 +36,7 @@ class Admission(models.Model):
 
     # meta
     subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admID = models.IntegerField(default=None,  primary_key=False, null=True, blank=True) # TODO: get the not null constraints back one we ran prepopproc!
+    admID = models.IntegerField(default=None,  primary_key=True)
     adm_time = models.CharField(default=None, max_length=20, null=True, blank=True)
     disch_time = models.CharField(default=None, max_length=20, null=True, blank=True)
     death_time = models.CharField(default=None, max_length=20, null=True, blank=True)
