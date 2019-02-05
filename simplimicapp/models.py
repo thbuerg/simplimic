@@ -102,12 +102,13 @@ class ChartEventValue(models.Model):
     store_time = models.CharField(default=None, max_length=20, null=True, blank=True)
     cgID = models.CharField(default=None, max_length=10, null=True, blank=True)
     value = models.CharField(default=None, max_length=10)
-    valuenum = models.FloatField(default=None)  # TOOD check if float is safe here
+    valuenum = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
     unit = models.CharField(max_length=10)
-    warning = models.BooleanField(default=None, null=True, blank=True)
-    error = models.BooleanField(default=None, null=True, blank=True)
+    warning = models.CharField(default=None, max_length=25, null=True, blank=True)
+    error = models.CharField(default=None, max_length=25, null=True, blank=True)
     resultstatus = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
     stopped = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
+
 
 class LabEventValue(models.Model):
     """
@@ -124,13 +125,12 @@ class LabEventValue(models.Model):
 
     # Fields:
     itemID = models.IntegerField(default=None)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
-    chart_time = models.CharField(default=None, max_length=20)
-    store_time = models.CharField(default=None, max_length=20, null=True, blank=True)
-    cgID = models.CharField(default=None, max_length=10, null=True, blank=True)
-    value = models.CharField(default=None, max_length=10)
-    valuenum = models.FloatField(default=None)  # TOOD check if float is safe here
-    unit = models.CharField(max_length=10)
+    chart_time = models.CharField(default=None, max_length=20, blank=True, null=True)
+    value = models.CharField(default=None, max_length=10, blank=True, null=True)
+    valuenum = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
+    unit = models.CharField(max_length=10, null=True, blank=True)
     flag = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
+
 
 class Sevice(models.Model):
     """
@@ -185,18 +185,18 @@ class Prescription(models.Model):
     icustay = models.ForeignKey('ICUstay', on_delete=models.CASCADE)
 
     # fields
-    start_date = models.CharField(default=None, max_length=20)
-    end_date = models.CharField(default=None, max_length=20)
-    drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1)
-    drug = models.CharField(default=None, max_length=25)#, primary_key=True)   # TODO: check  if we want primary key here
-    drug_name_poe = models.CharField(default=None, max_length=25)
-    drug_name_generic = models.CharField(default=None, max_length=25)
-    formulary_drug_cd = models.CharField(default=None, max_length=15)
-    gsn = models.FloatField(default=None)  # this is mostly INTs but some NaNs  disallow intfield.
-    ndc = models.FloatField(default=None)
-    prod_strength = models.CharField(default=None, max_length=25)
-    dose_val_rx = models.CharField(default=None, max_length=25)  # can't take  float here as there are ranges somtimes
-    dose_unit_rx = models.CharField(default=None, max_length=25)
-    form_val_disp = models.CharField(default=None, max_length=25)  # can't take  float here as there are ranges somtimes
-    form_unit_disp = models.CharField(default=None, max_length=25)
-    route = models.CharField(default=None, max_length=25)   # TODO: establish a CHOICE set here that is hierarchical!
+    start_date = models.CharField(default=None, max_length=20, null=True)
+    end_date = models.CharField(default=None, max_length=20, null=True)
+    drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1, null=True)
+    drug = models.CharField(default=None, max_length=25, null=True)#, primary_key=True)   # TODO: check  if we want primary key here
+    drug_name_poe = models.CharField(default=None, max_length=25, null=True)
+    drug_name_generic = models.CharField(default=None, max_length=25, null=True)
+    formulary_drug_cd = models.CharField(default=None, max_length=15, null=True)
+    gsn = models.FloatField(default=None, null=True, blank=True)  # this is mostly INTs but some NaNs  disallow intfield.
+    ndc = models.FloatField(default=None, null=True, blank=True)
+    prod_strength = models.CharField(default=None, max_length=25, null=True)
+    dose_val_rx = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
+    dose_unit_rx = models.CharField(default=None, max_length=25, null=True)
+    form_val_disp = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
+    form_unit_disp = models.CharField(default=None, max_length=25, null=True)
+    route = models.CharField(default=None, max_length=25, null=True)   # TODO: establish a CHOICE set here that is hierarchical!

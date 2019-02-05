@@ -8,12 +8,14 @@ https://github.com/YerevaNN/mimic3-benchmarks
 import os
 import pandas as pd
 import numpy as np
+from shutil import copyfile
 
 
 MIMIC_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo'
+OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
 # global MIMIC_DIR
 
-def _clean_admissions():
+def clean_admissions():
     """
     Go over the Admissions.csv -> select the entries w/o an hadmID
     :return:
@@ -33,13 +35,14 @@ def _clean_admissions():
     admissions.drop_duplicates(inplace=True)
     print('Found %d Admissions with unique ID.' % len(admissions))
     admissions.reset_index(inplace=True)
+    print(admissions.head())
 
-    admissions.to_csv(os.path.join(MIMIC_DIR, 'ADMISSIONS_CLEAN.csv'))
+    admissions.to_csv(os.path.join(OUT_DIR, 'ADMISSIONS.csv'))
 
     return admissions
 
 
-def _clean_icu_stays():
+def clean_icu_stays():
     """
     Go over the ICUSTAYS.csv and discard stays without admission
     :return:
@@ -48,16 +51,18 @@ def _clean_icu_stays():
     icustays = pd.read_csv(os.path.join(MIMIC_DIR, 'ICUSTAYS.csv'))
     icustays.set_index('ICUSTAY_ID', inplace=True)
 
-    stays = _get_stays_csv()
+    stays = get_stays_csv()
     stays.set_index('ICUSTAY_ID', inplace=True)
 
     icustays = icustays.loc[stays.index]
     icustays.reset_index(inplace=True)
 
+    icustays.to_csv(os.path.join(OUT_DIR, 'ICUSTAYS.csv'))
+
     return icustays
 
 
-def _clean_events(kind='CHART'):
+def clean_events(kind='CHART'):
     """
     Go over an xxxEVENTS.csv  and lookup the ICUSTAY/ADMISSION ID combo in the stays mapping.
 
@@ -71,9 +76,9 @@ def _clean_events(kind='CHART'):
 
     try:
         raise OSError()
-        stays = pd.read_csv(os.path.join(MIMIC_DIR, 'stays.csv'))
+        stays = pd.read_csv(os.path.join(OUT_DIR, 'stays.csv'))
     except OSError:
-        stays = _get_stays_csv()
+        stays = get_stays_csv()
 
     # read the events:
     events = pd.read_csv(os.path.join(MIMIC_DIR, '%sEVENTS.csv' % kind))
@@ -109,25 +114,53 @@ def _clean_events(kind='CHART'):
                         if timestamp in pd.Interval(stay_info['INTIME'], stay_info['OUTTIME']):
                             events_to_edit.loc[idx]['ICUSTAY_ID'] = stay_info['ICUSTAY_ID']
                             corrected = True
-                            print('Successfully corrected value.')
+                            print('Successfully inferred ICUSTAY_ID.')
 
                     if not corrected:
                         droplist.append(idx)
                         continue
+                else:
+                    # check that the combo of ICUSTAY_ID and HADM_ID is in stays, if not try to correct:
+                    icustays_p_hadmid = stays.loc[[hadmID]]
+                    if r['ICUSTAY_ID'] in icustays_p_hadmid[['ICUSTAY_ID']].values:
+                        continue
+                   # else:
+                   #     # we have to correct:
+                   #     if not r['ICUSTAY_ID'] in stays['ICUSTAY_ID'].values:
+                   #         # drop it:
+                   #         droplist.append(idx)
+                   #     else:
+                   #         # get the HADMID and assign it:
+                   #         stays_p_icuid = stays.reset_index().set_index('ICUSTAY_ID')
+                   #         if stays_p_icuid.loc[[r['ICUSTAY_ID']]]['HADM_ID'].nunique() > 1:
+                   #             droplist.append(idx)
+                   #         else:
+                   #             # we correct the HADM_ID:
+                   #             hadmid_corrected = stays_p_icuid.loc[r['ICUSTAY_ID']]['HADM_ID']
+                   #             print('Successfully corrected HADM_ID (%s -> %s) for ICUSTAY %s' %
+                   #                   (r['HADM_ID'], hadmid_corrected, r['ICUSTAY_ID']))
+                   #             events_to_edit.loc[idx, 'HADM_ID'] = hadmid_corrected
+                   #
+                   #             # TODO: OR: Correct the ICUSTAY?!
+                   #             # correct the stay ID instead of the HADM_ID
+                    else:
+                        # discard!
+                        droplist.append(idx)
 
     del events
     print('Dropping %s events due to invalid IDs' % len(droplist))
     events_to_edit.drop(droplist, inplace=True)
-    events_to_edit.to_csv(os.path.join(MIMIC_DIR, '%sEVENTS_clean.csv' % kind))
+    events_to_edit.to_csv(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind))
+    events_to_edit
 
 
-def _get_stays_csv():
+def get_stays_csv():
     """
     Write a csv file mapping ICU-stays to admissions (id to id):
         - read the ICUSTAY file
     :return:
     """
-    admissions = _clean_admissions()
+    admissions = clean_admissions()
 
     icustays = pd.read_csv(os.path.join(MIMIC_DIR, 'ICUSTAYS.csv'))
     assert icustays.shape[0] == icustays['ICUSTAY_ID'].nunique()
@@ -137,23 +170,49 @@ def _get_stays_csv():
                             'LAST_CAREUNIT', 'FIRST_WARDID',
                             'LAST_WARDID', 'LOS'], axis=1)
 
-    # drop the stays for which the HADM_ID is not in admissions:
     valid_admission_ids = sorted(list(set(stays['HADM_ID'].values).intersection(admissions['HADM_ID'].values)))
-
     stays.set_index('HADM_ID', inplace=True)
 
     for c in ['INTIME', 'OUTTIME']:
         stays[c] = pd.to_datetime(stays[c])
 
+    # drop the stays for which the HADM_ID is not in admissions:
     stays = stays.loc[valid_admission_ids]
-    stays.to_csv(os.path.join(MIMIC_DIR, 'stays.csv'))
+
+    # save:
+    stays.to_csv(os.path.join(OUT_DIR, 'stays.csv'))
 
     return stays
 
+# TODO:
+"""
+- get fn to check that there is a one to many mapping between HADM and ICUSTAY not vice versa
+- in case there is, get a fn to throw out the one with less information? (this would have to be based no the events files...)
+"""
+
+
+def copy_raw_files():
+    """
+    Copy the raw files from the MIMIC_DIR to OUT_DIR:
+    - Patients.csv
+    - Prescriptions.csv
+    :return:
+    """
+    copyfile(os.path.join(MIMIC_DIR, 'PATIENTS.csv'),
+             os.path.join(OUT_DIR, 'PATIENTS.csv'))
+    copyfile(os.path.join(MIMIC_DIR, 'PRESCRIPTIONS.csv'),
+             os.path.join(OUT_DIR, 'PRESCRIPTIONS.csv'))
+
 
 def main():
-    _clean_events()
-    _clean_events(kind='LAB')
+    # create outdir if needed:
+    if not os.path.exists(OUT_DIR):
+        os.mkdir(OUT_DIR)
+    copy_raw_files()
+    clean_admissions()
+    clean_icu_stays()
+    clean_events()
+    clean_events(kind='LAB')
 
 
 if __name__ == '__main__':

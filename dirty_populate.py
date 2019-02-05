@@ -165,9 +165,9 @@ def generate_chartevents():
         pids = events_per_icustay['SUBJECT_ID'].unique()
         assert pids.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Patients.'
         adms = events_per_icustay['HADM_ID'].unique()
-        assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions.'
+        assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions: HADMID: %s, ICUSTAYID: %s' % (adms[0], icustay_id)
 
-        a = Admission.objects.get_or_create(admID=e)[0]
+        a = Admission.objects.get_or_create(admID=adms[0])[0]
         p = Patient.objects.get_or_create(subjectID=pids[0])[0]
         i = ICUstay.objects.get_or_create(icustayID=icustay_id)[0]
 
@@ -177,11 +177,15 @@ def generate_chartevents():
         models = []
         
         for item, r in events_per_icustay.iterrows():
-            m = CartEventValue(
+            # if sum(r.isna()) > 0:
+            #     r.where((pd.notnull(r)), None)
+                # r.fillna(value=None, inplace=True)
+
+            m = ChartEventValue(
                 subject=p,
                 admission=a,
                 icustay=i,
-                itemID = r['ITEMID'],
+                itemID = item,
                 chart_time=r['CHARTTIME'],
                 store_time=r['STORETIME'],
                 cgID =r['CGID'],
@@ -191,10 +195,14 @@ def generate_chartevents():
                 warning=r['WARNING'],
                 error=r['ERROR'],
                 resultstatus=r['RESULTSTATUS'],
-                stopped=r['STOPPED']
+                stopped=r['STOPPED'],
+                # warning=None if np.isnan(r['WARNING']) else r['WARNING'],
+                # error=None if np.isnan(r['ERROR']) else r['ERROR'],
+                # resultstatus=None if np.isnan(r['RESULTSTATUS']) else r['RESULTSTATUS'],
+                # stopped=None if np.isnan(r['STOPPED']) else r['STOPPED'],
             )
             models.append(m)
-        CartEventValue.objects.bulk_create(models)
+        ChartEventValue.objects.bulk_create(models)
 
     print('DONE')
 
@@ -205,6 +213,7 @@ def generate_labevents():
         - hadmID
         - then itemID
         - then models are generated per descriptor
+        ,ROW_ID,SUBJECT_ID,HADM_ID,ITEMID,CHARTTIME,VALUE,VALUENUM,VALUEUOM,FLAG
     :return:
     """
     # read in the charts files:
@@ -234,10 +243,10 @@ def generate_labevents():
             m = LabEventValue(
                 subject=p,
                 admission=a,
-                itemID = r['ITEMID'],
+                itemID = item,
                 chart_time=r['CHARTTIME'],
-                store_time=r['STORETIME'],
-                cgID =r['CGID'],
+                # store_time=r['STORETIME'],
+                # cgID =r['CGID'],
                 value=r['VALUE'],
                 valuenum=r['VALUENUM'],
                 unit=r['VALUEUOM'],
@@ -256,9 +265,9 @@ def generate_presriptions():
     """
     print('Generating prescriptions...')
 
-    records = pd.read_csv(os.path.join(DATADIR, 'presc_filt_all.csv'))
+    records = pd.read_csv(os.path.join(DATADIR, 'PRESCRIPTIONS.csv'))
 
-    print('Found %d records to generate from file: %s' % (records.shape[0], os.path.join(DATADIR,  'presc_filt_all.csv')))
+    print('Found %d records to generate from file: %s' % (records.shape[0], os.path.join(DATADIR,  'PRESCRIPTIONS.csv')))
 
     for icustay_id, drugs_per_icustay in records.groupby('ICUSTAY_ID'):
         pids = drugs_per_icustay['SUBJECT_ID'].unique()
@@ -271,21 +280,21 @@ def generate_presriptions():
         i = ICUstay.objects.get_or_create(icustayID=icustay_id)[0]
 
         models = []
-        for i, r in drugs_per_icustay.iterrows():
+        for idx, r in drugs_per_icustay.iterrows():
             m = Prescription(
                 subject=p,
                 admission=a,
                 icustay=i,
                 start_date=r['STARTDATE'],
                 end_date=r['ENDDATE'],
-                drug_type=r['DRUGTYPE'],     # TODO -> go through dict here?
+                drug_type=r['DRUG_TYPE'],     # TODO -> go through dict here?
                 drug=r['DRUG'],
                 drug_name_poe=r['DRUG_NAME_POE'],
                 drug_name_generic=r['DRUG_NAME_GENERIC'],
                 formulary_drug_cd=r['FORMULARY_DRUG_CD'],
                 gsn=r['GSN'],
                 ndc=r['NDC'],
-                prod_strength=r['PROD_STRENGHT'],
+                prod_strength=r['PROD_STRENGTH'],
                 dose_val_rx=r['DOSE_VAL_RX'],
                 dose_unit_rx=r['DOSE_UNIT_RX'],
                 form_val_disp=r['FORM_VAL_DISP'],
