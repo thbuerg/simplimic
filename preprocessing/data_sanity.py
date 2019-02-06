@@ -24,6 +24,7 @@ def clean_admissions():
     admissions = pd.read_csv(os.path.join(MIMIC_DIR, 'ADMISSIONS.csv'))
 
     admissions.set_index('HADM_ID', inplace=True)
+
     missing = admissions.index == np.nan
     missing = admissions[missing].copy()
 
@@ -56,6 +57,7 @@ def clean_icu_stays():
 
     icustays = icustays.loc[stays.index]
     icustays.reset_index(inplace=True)
+
 
     icustays.to_csv(os.path.join(OUT_DIR, 'ICUSTAYS.csv'))
 
@@ -151,7 +153,6 @@ def clean_events(kind='CHART'):
     print('Dropping %s events due to invalid IDs' % len(droplist))
     events_to_edit.drop(droplist, inplace=True)
     events_to_edit.to_csv(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind))
-    events_to_edit
 
 
 def get_stays_csv():
@@ -178,6 +179,10 @@ def get_stays_csv():
 
     # drop the stays for which the HADM_ID is not in admissions:
     stays = stays.loc[valid_admission_ids]
+
+
+
+
 
     # save:
     stays.to_csv(os.path.join(OUT_DIR, 'stays.csv'))
