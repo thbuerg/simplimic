@@ -1,6 +1,53 @@
 {
-  "renal": [''],
-  "blood": [''],
-  "": [''],
-
+  "ChartEventItems": {
+    "BloodPressure": [
+      220179,
+      220180,
+      220181
+    ],
+    "HeartRate": [
+      220045
+    ],
+    "RespiratoryRate": [
+      220210
+    ],
+    "Temperature": [
+      223762
+    ],
+    "OxygenSaturation": [
+      220277
+    ]
+  },
+  "LabEventItems": {
+    "LiverFunction": [
+      50861,
+      50878,
+      50863,
+      50927,
+      50885,
+      50862
+    ],
+    "RenalFunction": [
+      50912,
+      50893,
+      50983,
+      50971,
+      50965
+    ],
+    "Glucose": [
+      50931
+    ],
+    "ClottingFactors": [
+      51274,
+      51275,
+      51214
+    ],
+    "FullBCC": [
+      51222,
+      51221,
+      51279,
+      51301,
+      51265
+    ]
   }
+}
