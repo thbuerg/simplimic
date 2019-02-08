@@ -2,8 +2,10 @@ import os
 import sys
 import re
 import datetime
+import json
 import numpy as np
 import pandas as pd
+from pprint import pprint
 pd.set_option('display.max_columns', None)
 import xarray as xr
 import django
@@ -77,7 +79,7 @@ def get_stay_chart_timeseries(icustay_id):
 
     events_ts = _events_to_ts(events, variable_col='itemID', value='value').reset_index()
     intime = pd.Timestamp(stay['intime'].values[0])
-    # events_ts = add_hours_elpased_to_events(events_ts, dt=intime)
+    events_ts = add_hours_elpased_to_events(events_ts, dt=intime)
 
     return events_ts
 
@@ -110,10 +112,14 @@ def get_stay_lab_timeseries(icustay_id):
     events['icustayID'] = stay['icustayID'].unique()[0]
 
     # convert to ts:
-    events_ts = _events_to_ts(events, variable_col='itemID', value='value')
+    events_ts = _events_to_ts(events, variable_col='itemID', value='value').reset_index()
+
+    if events_ts.empty:
+        return events_ts
 
     intime = pd.Timestamp(stay['intime'].values[0])
-    # events_ts = add_hours_elpased_to_events(events_ts, dt=intime)
+
+    events_ts = add_hours_elpased_to_events(events_ts, dt=intime)
 
     return events_ts
 
@@ -192,18 +198,31 @@ def get_all_stays_info():
     return all_stays_meta, all_stays_chart, all_stays_lab
 
 
-def filter_items():
+def filter_items(df):
     """
     Filter items of interest from the stays.csv files
     :param events_df:
     :param itemIDs:
     :return:
     """
-    # TODO: create a JSON holding the info of what are the items we consider
+    with open('simplimicapp/items.JSON') as infobj:
+        items_dict = json.load(infobj)
+
+    all_relevant = [_ for d in items_dict.values() for v in d.values() for _ in v]
+    df.drop([c for c in df.columns if c not in all_relevant and str(c).isdigit()], axis=1, inplace=True)
+
+    return df
 
 
 def main():
     meta, chart, lab = get_all_stays_info()
+    chart = filter_items(chart)
+    lab = filter_items(lab)
+
+    # dirty save for playing around:
+    chart.to_csv('~/projects/thesis/data/sandbox/chart.csv')
+    lab.to_csv('~/projects/thesis/data/sandbox/lab.csv')
+    meta.to_csv('~/projects/thesis/data/sandbox/meta.csv')
 
 
 if __name__ == '__main__':
