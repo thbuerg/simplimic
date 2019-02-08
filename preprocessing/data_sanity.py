@@ -29,7 +29,7 @@ def clean_admissions():
     missing = admissions[missing].copy()
 
     print('Found %d Admissions.' % len(admissions))
-    if missing.index.values:
+    if missing.index.values.size > 0:
         admissions = admissions.loc[~missing.index.values]
     print('Found %d Admissions with ID.' % len(admissions))
 
@@ -75,81 +75,79 @@ def clean_events(kind='CHART'):
     assert kind in ['LAB', 'CHART']
 
     try:
-        raise OSError()
         stays = pd.read_csv(os.path.join(OUT_DIR, 'stays.csv'))
     except OSError:
         stays = get_stays_csv()
 
     # read the events:
-    events = pd.read_csv(os.path.join(MIMIC_DIR, '%sEVENTS.csv' % kind))
-    # raise NotImplementedError()
+    for events in pd.read_csv(os.path.join(MIMIC_DIR, '%sEVENTS.csv' % kind), chunksize=100000):
 
-    stays.reset_index(inplace=True)
-    stays_by_icu = stays.set_index('ICUSTAY_ID')
-    stays_by_hadm = stays.set_index('HADM_ID')
+        stays.reset_index(inplace=True)
+        stays_by_icu = stays.set_index('ICUSTAY_ID')
+        stays_by_hadm = stays.set_index('HADM_ID')
 
-    droplist = []
-    events_to_edit = events.copy()
+        droplist = []
+        events_to_edit = events.copy()
 
-    if kind == 'CHART':
-        """
-        1. group by icustay. 
-            - ensure the stay-HADMID combo is legit (in stays)
-                - if not -> discard
-        """
-        for icustayID, events_per_icustay in events.groupby('ICUSTAY_ID'):
-            # correct nan
-            if np.isnan(icustayID):
-                print('Found %d NaN ICUSTAY_IDs. Correcting.' % events_per_icustay.shape[0])
-                for idx, r in events_per_icustay.iterrows():
-                    # -> get the ID from the stays table by comparing the time.
-                    icustays_p_hadmid = stays_by_hadm.loc[[hadmID]] # make sure to get a dataframe
-                    corrected = False
-                    for hadmID, stay_info in icustays_p_hadmid.iterrows():
-                        timestamp = pd.to_datetime(r['CHARTTIME'])
-                        if timestamp in pd.Interval(stay_info['INTIME'], stay_info['OUTTIME']):
-                            events_to_edit.loc[idx, 'ICUSTAY_ID'] = stay_info['ICUSTAY_ID']
-                            corrected = True
-                            print('Successfully inferred ICUSTAY_ID.')
+        if kind == 'CHART':
+            """
+            1. group by icustay. 
+                - ensure the stay-HADMID combo is legit (in stays)
+                    - if not -> discard
+            """
+            for icustayID, events_per_icustay in events.groupby('ICUSTAY_ID'):
+                # correct nan
+                if np.isnan(icustayID):
+                    print('Found %d NaN ICUSTAY_IDs. Correcting.' % events_per_icustay.shape[0])
+                    for idx, r in events_per_icustay.iterrows():
+                        # -> get the ID from the stays table by comparing the time.
+                        icustays_p_hadmid = stays_by_hadm.loc[[hadmID]] # make sure to get a dataframe
+                        corrected = False
+                        for hadmID, stay_info in icustays_p_hadmid.iterrows():
+                            timestamp = pd.to_datetime(r['CHARTTIME'])
+                            if timestamp in pd.Interval(stay_info['INTIME'], stay_info['OUTTIME']):
+                                events_to_edit.loc[idx, 'ICUSTAY_ID'] = stay_info['ICUSTAY_ID']
+                                corrected = True
+                                print('Successfully inferred ICUSTAY_ID.')
 
-                    if not corrected:
-                        droplist.append(idx)
-                        continue
-                continue
+                        if not corrected:
+                            droplist.append(idx)
+                            continue
+                    continue
 
-            if icustayID not in stays_by_icu.index:
-                droplist.extend(events_per_icustay.index.values)
-                continue
+                if icustayID not in stays_by_icu.index:
+                    droplist.extend(events_per_icustay.index.values)
+                    continue
 
-            # check if pair is legit:
-            hadmIDs = events_per_icustay['HADM_ID'].unique()
-            correct_hadmID = stays_by_icu.loc[icustayID, 'HADM_ID']
+                # check if pair is legit:
+                hadmIDs = events_per_icustay['HADM_ID'].unique()
+                correct_hadmID = stays_by_icu.loc[icustayID, 'HADM_ID']
 
-            if correct_hadmID not in hadmIDs:
-                # drop all:
-                droplist.extend(events_per_icustay.index.values)
-                continue
+                if correct_hadmID not in hadmIDs:
+                    # drop all:
+                    droplist.extend(events_per_icustay.index.values)
+                    continue
 
-            else:
-                # discard all that have different HADM_IDs
-                for id, df in events_per_icustay.groupby('HADM_ID'):
-                    if not id == correct_hadmID:
-                        droplist.extend(df.index.values)
+                else:
+                    # discard all that have different HADM_IDs
+                    for id, df in events_per_icustay.groupby('HADM_ID'):
+                        if not id == correct_hadmID:
+                            droplist.extend(df.index.values)
 
-    else:
-        for hadmID, events_per_hadm in events.groupby('HADM_ID'):
+        else:
+            for hadmID, events_per_hadm in events.groupby('HADM_ID'):
 
-            # TODO: implement recovery of hadmID based on intime/outtime!
-            # check if hadmID in stays. if not discard:
-            if hadmID not in stays_by_hadm.index:
-                droplist.extend(events_per_hadm.index.values)
-            else:
-                continue
+                # TODO: implement recovery of hadmID based on intime/outtime!
+                # check if hadmID in stays. if not discard:
+                if hadmID not in stays_by_hadm.index:
+                    droplist.extend(events_per_hadm.index.values)
+                else:
+                    continue
 
-    del events
-    print('Dropping %s events due to invalid IDs' % len(droplist))
-    events_to_edit.drop(droplist, inplace=True)
-    events_to_edit.to_csv(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind))
+        del events
+        print('Dropping %s events due to invalid IDs' % len(droplist))
+        events_to_edit.drop(droplist, inplace=True)
+        events_to_edit.to_csv(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind), mode='a')
 
 
 def get_stays_csv():
