@@ -3,7 +3,6 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
 import django
 django.setup()
 import pandas as pd
-from simplimicapp.models import *
 
 # some dirty FLAGS:
 #DATADIR = '/Users/buergelt/projects/thesis/data/mimic_proc_all'

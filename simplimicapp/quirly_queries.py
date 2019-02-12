@@ -5,16 +5,14 @@ import datetime
 import json
 import numpy as np
 import pandas as pd
-from pprint import pprint
+
 pd.set_option('display.max_columns', None)
-import xarray as xr
 import django
 sys.path.append("../simplimic")
 # sys.path.insert(0, '../simplimic')
 os.environ['DJANGO_SETTINGS_MODULE'] = 'simplimic.settings'
 django.setup()
 from django_pandas.io import read_frame
-from simplimicapp.models import *
 
 
 def add_hours_elpased_to_events(events, dt, remove_charttime=True):
@@ -66,7 +64,8 @@ def get_stay_chart_timeseries(icustay_id):
     For given ICU-stay ID -> get the events as time series.
     :return:
     """
-    events = ChartEventValue.objects.filter(icustay=icustay_id)
+    # read in the items.json and get the terms we want
+    events = ChartEventValue.objects.filter(icustay=icustay_id).values()
     events = read_frame(events)#.set_index('itemID').drop(['subject','admission','id'], axis=1)
 
     if events.empty:
@@ -78,8 +77,11 @@ def get_stay_chart_timeseries(icustay_id):
     stay = read_frame(stay)
 
     events_ts = _events_to_ts(events, variable_col='itemID', value='value').reset_index()
-    intime = pd.Timestamp(stay['intime'].values[0])
-    events_ts = add_hours_elpased_to_events(events_ts, dt=intime)
+
+
+
+    # intime = pd.Timestamp(stay['intime'].values[0])
+    # events_ts = add_hours_elpased_to_events(events_ts, dt=intime)
 
     return events_ts
 
@@ -163,6 +165,7 @@ def get_meta_info(icustay_id):
 
     return stay
 
+
 def get_all_stays_info():
     """
     1. query a list of _all_ icstay ids
@@ -196,6 +199,19 @@ def get_all_stays_info():
     print('lab: %s' % str(all_stays_lab.shape))
 
     return all_stays_meta, all_stays_chart, all_stays_lab
+
+
+def get_single_stay(id):
+    """
+    Get and comnbine the information for a single stay.
+    :param id:
+    :return:
+    """
+    meta = get_meta_info(id)
+    chart = get_stay_chart_timeseries(id)
+    lab = get_stay_lab_timeseries(id)
+
+    return meta, chart, lab
 
 
 def filter_items(df):
