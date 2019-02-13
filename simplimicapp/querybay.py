@@ -38,12 +38,42 @@ class Query(object):
 
     def query_stay(self, id):
         """
-        Retrieve the data for a single icustay
+        Retrieve the data for a single icustay.
         :param id:
         :return:
         """
-        # charts = self.get_stay_chart_timeseries(id)
-        labs = self.get_stay_lab_timeseries(id)
+        events = pd.concat([self.get_stay_chart_timeseries(id),
+                            self.get_stay_lab_timeseries(id)], axis=0)
+        meta = self.get_stay_meta(id)
+
+        return events, meta
+
+    def get_stay_meta(self, id):
+        """
+        Query the  meta information for an  icu stay.
+        :param id:
+        :return:
+        """
+        stay = ICUstay.objects.filter(icustayID=id).values('intime', 'outtime', 'admission_id', 'subject')
+        meta_df = read_frame(stay)
+        meta_df['intime'] = pd.to_datetime(meta_df['intime'])
+        meta_df['outtime'] = pd.to_datetime(meta_df['outtime'])
+
+        # admission
+        admission = Admission.objects.filter(admID=stay[0]['admission_id'])\
+            .values('adm_time', 'disch_time', 'inpmor', 'pdismor', 'read')
+        admission_df = read_frame(admission)
+
+        # patient
+        patient = Patient.objects.filter(subjectID=stay[0]['subject'])\
+            .values('gender', 'age', 'date_of_death_hosp')
+        patient_df = read_frame(patient)
+
+        for df in [patient_df, admission_df]:
+            for c in df.columns:
+                meta_df[c] = df[c]
+
+        return meta_df
 
     def get_stay_chart_timeseries(self, icustay_id):
         """
@@ -54,14 +84,13 @@ class Query(object):
         events = []
         for descriptor, item in self.chartitems.items():
             var_events = ChartEventValue.objects.filter(icustay=icustay_id, itemID__exact=item).values(*self.columns)
-            pprint(var_events)
             var_events = read_frame(var_events)
             var_events['variable'] = descriptor
             var_events['icustayID'] = icustay_id
             var_events.set_index('variable', inplace=True)
             events.append(var_events)
 
-        events = pd.concat(var_events, axis=0)
+        events = pd.concat(events, axis=0)
         return events
 
     def get_stay_lab_timeseries(self, icustay_id):
@@ -78,24 +107,21 @@ class Query(object):
         admission_id = stay[0]['admission_id']
 
         # now query the relevant lab events:
+        events = []
         for descriptor, item in self.labitems.items():
-            var_events = LabEventValue.objects.filter(admission=admission_id, chart_time__gte=intime,
-                                                      chart_time__lte=outtime).values(*self.columns)
-            pprint(var_events)
-            # var_events = read_frame(var_events)
-        raise NotImplementedError()
-
-
-
-        raise NotImplementedError()
+            var_events = LabEventValue.objects.filter(admission=admission_id,
+                                                      chart_time__gte=intime,
+                                                      chart_time__lte=outtime
+                                                      ).values(*self.columns)
+            var_events = read_frame(var_events)
+            var_events['variable'] = descriptor
+            var_events['icustayID'] = icustay_id
+            var_events.set_index('variable', inplace=True)
+            events.append(var_events)
+        events = pd.concat(events, axis=0)
+        return events
 
 
 if __name__ == '__main__':
-    # parse FLAGS:
-
-
-
-
-    q = Query('/Users/buergelt/projects/thesis/scripts/mortimer/resources/config.JSON')
-
+    raise NotImplementedError('No implemented standalone use.')
 

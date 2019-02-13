@@ -3,6 +3,7 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
 import django
 django.setup()
 import pandas as pd
+from simplimicapp.models import *
 
 # some dirty FLAGS:
 #DATADIR = '/Users/buergelt/projects/thesis/data/mimic_proc_all'
@@ -65,7 +66,6 @@ def generate_admissions():
 
     adm_df = pd.read_csv(os.path.join(DATADIR, 'ADMISSIONS.csv'))
     adm_df.set_index('SUBJECT_ID', inplace=True)
-    
 
 
     # generate an django entry for each row:
@@ -125,7 +125,7 @@ def generate_icustays():
             m = ICUstay(
                 subject = p,
                 admission=a,
-                icustayID=i,
+                icustayID=float(i),  # float('10.0') -> int() works
                 db_source=r['DBSOURCE'],
                 first_cu= r['FIRST_CAREUNIT'],
                 last_cu=r['LAST_CAREUNIT'],
@@ -165,10 +165,15 @@ def generate_chartevents():
             assert pids.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Patients.'
             adms = events_per_icustay['HADM_ID'].unique()
             assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions: HADMID: %s, ICUSTAYID: %s' % (adms[0], icustay_id)
-
-            a = Admission.objects.get_or_create(admID=adms[0])[0]
-            p = Patient.objects.get_or_create(subjectID=pids[0])[0]
-            i = ICUstay.objects.get_or_create(icustayID=icustay_id)[0]
+            try:
+                a = Admission.objects.get_or_create(admID=adms[0])[0]
+                p = Patient.objects.get_or_create(subjectID=pids[0])[0]
+                i = ICUstay.objects.get_or_create(icustayID=float(icustay_id))[0]
+            except:
+                print(adms)
+                print(pids)
+                print(icustay_id)
+                print(events_per_icustay)
 
             # loop over all descriptors and instatiate them all:
             events_per_icustay.set_index('ITEMID', inplace=True)

@@ -37,9 +37,12 @@ class Admission(models.Model):
     # meta
     subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
     admID = models.IntegerField(default=None,  primary_key=True)
-    adm_time = models.CharField(default=None, max_length=20, null=True, blank=True)
-    disch_time = models.CharField(default=None, max_length=20, null=True, blank=True)
-    death_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    # adm_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    adm_time = models.DateTimeField(null=True, blank=True)
+    # disch_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    disch_time = models.DateTimeField(null=True, blank=True)
+    # death_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    death_time = models.DateTimeField(default=None, null=True, blank=True)
     adm_type = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=2)
     adm_location = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
     disch_location = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
@@ -48,8 +51,8 @@ class Admission(models.Model):
     religion = models.CharField(default=None, max_length=10)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
     marital_status = models.CharField(default=None, max_length=10)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
     ethnicity = models.CharField(default=None, max_length=50)
-    edregtime = models.CharField(default=None, max_length=20)
-    edouttime = models.CharField(default=None, max_length=20)
+    edregtime = models.DateTimeField(default=None, null=True, blank=True)
+    edouttime = models.DateTimeField(default=None, null=True, blank=True)
     init_diagnosis = models.CharField(default=None, max_length=100)  # some of them are really detailed in description -> definitively better to use codes
     hosp_exp_flag = models.BooleanField(default=None) # TODO find out what this is
     has_chartevents = models.BooleanField(default=None)
@@ -77,8 +80,8 @@ class ICUstay(models.Model):
     last_cu = models.CharField(default=None,  max_length=10)
     first_ward_id = models.IntegerField(default=None)
     last_ward_id = models.IntegerField(default=None)
-    intime = models.CharField(default=None, max_length=20)  # important field.
-    outtime = models.CharField(default=None, max_length=20)  # important field.
+    intime = models.DateTimeField(default=None)  # important field.
+    outtime = models.DateTimeField(default=None)  # important field.
     los = models.IntegerField(default=None)
 
 
@@ -97,9 +100,9 @@ class ChartEventValue(models.Model):
     icustay = models.ForeignKey('ICUstay', on_delete=models.CASCADE)
 
     # Fields:
-    itemID = models.IntegerField(default=None)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
-    chart_time = models.CharField(default=None, max_length=20)
-    store_time = models.CharField(default=None, max_length=20, null=True, blank=True)
+    itemID = models.IntegerField(default=None) #, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
+    chart_time = models.DateTimeField(default=None) #, max_length=20)
+    store_time = models.DateTimeField(default=None, null=True, blank=True) #, max_length=20, null=True, blank=True)
     cgID = models.CharField(default=None, max_length=10, null=True, blank=True)
     value = models.CharField(default=None, max_length=10)
     valuenum = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
@@ -125,14 +128,15 @@ class LabEventValue(models.Model):
 
     # Fields:
     itemID = models.IntegerField(default=None)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
-    chart_time = models.CharField(default=None, max_length=20, blank=True, null=True)
+    # chart_time = models.CharField(default=None, max_length=20, blank=True, null=True)
+    chart_time = models.DateTimeField(default=None, blank=True, null=True)
     value = models.CharField(default=None, max_length=10, blank=True, null=True)
     valuenum = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
     unit = models.CharField(max_length=10, null=True, blank=True)
     flag = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
 
 
-class Sevice(models.Model):
+class Service(models.Model):
     """
     Holds information on the servive
     "SUBJECT_ID","HADM_ID","TRANSFERTIME","PREV_SERVICE","CURR_SERVICE"

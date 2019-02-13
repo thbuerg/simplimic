@@ -36,6 +36,19 @@ def clean_admissions():
     admissions.drop_duplicates(inplace=True)
     print('Found %d Admissions with unique ID.' % len(admissions))
     admissions.reset_index(inplace=True)
+
+    # correct the missing timestamps
+    for c in [
+        # 'ADMITTIME',
+        # 'DISCHTIME',
+        'DEATHTIME',
+        'EDREGTIME',
+        'EDOUTTIME',
+    ]:
+        admissions[c] = pd.to_datetime(admissions[c].fillna('1911-11-11 11:11:11'))
+
+    print(admissions.isna().sum())
+
     admissions.to_csv(os.path.join(OUT_DIR, 'ADMISSIONS.csv'))
 
     return admissions
@@ -56,6 +69,8 @@ def clean_icu_stays():
     icustays = icustays.loc[stays.index]
     icustays.reset_index(inplace=True)
 
+    for c in ['INTIME', 'OUTTIME']:
+        icustays[c] = pd.to_datetime(icustays[c])
 
     icustays.to_csv(os.path.join(OUT_DIR, 'ICUSTAYS.csv'))
 
@@ -79,10 +94,11 @@ def clean_events(kind='CHART'):
     except OSError:
         stays = get_stays_csv()
 
+    stays.reset_index(inplace=True)
+
     # read the events:
     for events in pd.read_csv(os.path.join(MIMIC_DIR, '%sEVENTS.csv' % kind), chunksize=100000):
 
-        stays.reset_index(inplace=True)
         stays_by_icu = stays.set_index('ICUSTAY_ID')
         stays_by_hadm = stays.set_index('HADM_ID')
 
@@ -106,6 +122,9 @@ def clean_events(kind='CHART'):
                         for hadmID, stay_info in icustays_p_hadmid.iterrows():
                             timestamp = pd.to_datetime(r['CHARTTIME'])
                             if timestamp in pd.Interval(stay_info['INTIME'], stay_info['OUTTIME']):
+                                # print('\n'*3)
+                                # print(stay_info['ICUSTAY_ID'])
+                                # print('\n'*3)
                                 events_to_edit.loc[idx, 'ICUSTAY_ID'] = stay_info['ICUSTAY_ID']
                                 corrected = True
                                 print('Successfully inferred ICUSTAY_ID.')
@@ -146,8 +165,12 @@ def clean_events(kind='CHART'):
 
         del events
         print('Dropping %s events due to invalid IDs' % len(droplist))
+        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'])
+        if kind == 'CHART':
+            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'])
         events_to_edit.drop(droplist, inplace=True)
-        events_to_edit.to_csv(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind), mode='a')
+        with open(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind), 'a') as fobj:
+            events_to_edit.to_csv(fobj, mode='a', header=fobj.tell() == 0)
 
 
 def get_stays_csv():
@@ -174,10 +197,6 @@ def get_stays_csv():
 
     # drop the stays for which the HADM_ID is not in admissions:
     stays = stays.loc[valid_admission_ids]
-
-
-
-
 
     # save:
     stays.to_csv(os.path.join(OUT_DIR, 'stays.csv'))
