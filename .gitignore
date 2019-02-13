@@ -12,4 +12,6 @@ simplimicapp/migrations/__pycache__
 simplimicapp/migrations/__pycache__/*
 bak.*
 playground*
+simplimic.egg-info/*
+simplimic.egg*
 cluster_init.sh
