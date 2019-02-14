@@ -1,5 +1,7 @@
 """
-https://en.wikipedia.org/wiki/Quarry_Bay
+In memory of the days in:
+>>> https://en.wikipedia.org/wiki/Quarry_Bay
+
 """
 import os
 os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
@@ -27,6 +29,9 @@ class Query(object):
         with open(self.FLAGS.labitems, 'r') as infobj:
             self.labitems = json.load(infobj)
 
+        # get list of all stays:
+        self.stays_map = self._get_stays_map()
+
         # self._initialize()
     #
     # def _initialize(self):
@@ -35,6 +40,12 @@ class Query(object):
         # initialize the query and establish a connection to the database
         # :return:
         # """
+    def _get_stays_map(self):
+        """ GEt a list of all stay IDs in the  database """
+        stays = ICUstay.objects.filter(admission__has_chartevents=True).values('icustayID', 'admission_id', 'subject')
+        # stays = [(s['icustayID'], s['admission_id'], s['subject']) for s in stays]
+        stays = pd.concat([pd.Series(s).to_frame().T for s in stays])
+        return stays
 
     def query_stay(self, id):
         """
@@ -91,6 +102,7 @@ class Query(object):
             events.append(var_events)
 
         events = pd.concat(events, axis=0)
+        events['kind'] = 'chart'
         return events
 
     def get_stay_lab_timeseries(self, icustay_id):
@@ -119,6 +131,7 @@ class Query(object):
             var_events.set_index('variable', inplace=True)
             events.append(var_events)
         events = pd.concat(events, axis=0)
+        events['kind'] = 'lab'
         return events
 
 
