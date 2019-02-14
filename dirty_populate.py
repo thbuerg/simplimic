@@ -121,7 +121,7 @@ def generate_icustays():
 
         models = []
 
-        for i, r in stays_df.iterrows():
+        for i, r in stays_per_adm_df.iterrows():
             m = ICUstay(
                 subject = p,
                 admission=a,
@@ -137,7 +137,7 @@ def generate_icustays():
             )
             models.append(m)
 
-    ICUstay.objects.bulk_create(models)   # TODO maybe better within the outer for loop?
+        ICUstay.objects.bulk_create(models)   # TODO maybe better within the outer for loop?
 
     print('DONE')
 
@@ -165,15 +165,15 @@ def generate_chartevents():
             assert pids.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Patients.'
             adms = events_per_icustay['HADM_ID'].unique()
             assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions: HADMID: %s, ICUSTAYID: %s' % (adms[0], icustay_id)
-            try:
-                a = Admission.objects.get_or_create(admID=adms[0])[0]
-                p = Patient.objects.get_or_create(subjectID=pids[0])[0]
-                i = ICUstay.objects.get_or_create(icustayID=float(icustay_id))[0]
-            except:
-                print(adms)
-                print(pids)
-                print(icustay_id)
-                print(events_per_icustay)
+            # try:
+            a = Admission.objects.get(admID=adms[0])
+            p = Patient.objects.get(subjectID=pids[0])
+            i = ICUstay.objects.get(icustayID=float(icustay_id))
+            # except:
+            #     print(adms)
+            #     print(pids)
+            #     print(icustay_id)
+            #     print(events_per_icustay)
 
             # loop over all descriptors and instatiate them all:
             events_per_icustay.set_index('ITEMID', inplace=True)
