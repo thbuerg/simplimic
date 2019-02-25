@@ -4,6 +4,8 @@ In memory of the days in:
 
 """
 import os
+import sys
+import simplimic.settings
 os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
 import re
 import json
