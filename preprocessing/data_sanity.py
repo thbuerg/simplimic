@@ -71,7 +71,10 @@ def clean_icu_stays():
 
     for c in ['INTIME', 'OUTTIME']:
         icustays[c] = pd.to_datetime(icustays[c])
-
+        
+    # drop where in and outtimes are missing:
+    icustays = icustays.loc[icustays['OUTTIME'].notnull()]
+    icustays = icustays.loc[icustays['INTIME'].notnull()]
     icustays.to_csv(os.path.join(OUT_DIR, 'ICUSTAYS.csv'))
 
     return icustays
@@ -166,10 +169,11 @@ def clean_events(kind='CHART'):
 
         del events
         print('Dropping %s events due to invalid IDs' % len(droplist))
-        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'])
-        if kind == 'CHART':
-            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'])
         events_to_edit.drop(droplist, inplace=True)
+        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'])  #.fillna('1911-11-11 11:11:11'))
+        if kind == 'CHART':
+            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'].fillna('1911-11-11 11:11:11'))
+        events_to_edit = events_to_edit.loc[events_to_edit['CHARTTIME'].notnull()]
         with open(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind), 'a') as fobj:
             events_to_edit.to_csv(fobj, mode='a', header=fobj.tell() == 0)
 
@@ -185,6 +189,9 @@ def get_stays_csv():
     icustays = pd.read_csv(os.path.join(MIMIC_DIR, 'ICUSTAYS.csv'))
     assert icustays.shape[0] == icustays['ICUSTAY_ID'].nunique()
     assert icustays['ICUSTAY_ID'].isna().sum() == 0
+    
+    icustays = icustays.loc[icustays['OUTTIME'].notnull()]
+    icustays = icustays.loc[icustays['INTIME'].notnull()]
 
     stays = icustays.drop(['ROW_ID', 'DBSOURCE', 'FIRST_CAREUNIT',
                             'LAST_CAREUNIT', 'FIRST_WARDID',

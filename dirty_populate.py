@@ -206,7 +206,13 @@ def generate_chartevents():
                     # stopped=None if np.isnan(r['STOPPED']) else r['STOPPED'],
                 )
                 models.append(m)
-            ChartEventValue.objects.bulk_create(models)
+            try:
+                ChartEventValue.objects.bulk_create(models)
+            except TypeError:
+                print(icustay_id)
+                events_per_icustay.to_csv(os.path.join(DATADIR, 'CHARTEVENTS_CRASH.csv'))
+                raise TypeError()
+                                        
 
     print('DONE')
 
