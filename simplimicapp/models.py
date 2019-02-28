@@ -57,15 +57,6 @@ class Admission(models.Model):
     hosp_exp_flag = models.BooleanField(default=None) # TODO find out what this is
     has_chartevents = models.BooleanField(default=None)
 
-    # TODO:  these will no longer be part of the admission and will  have to be inferred over the subject.
-    # Outcomes
-    inpmor = models.BooleanField(default=None,  null=True, blank=True)  # in-hospital death
-    pdismor = models.BooleanField(default=None,  null=True, blank=True)  # past discharge death (within 30 days)
-    read = models.BooleanField(default=None,  null=True, blank=True)  # readmission (within 30)
-    los = models.IntegerField(default=0,  null=True, blank=True)  # length of stay (in days)
-    plos = models.BooleanField(default=None,  null=True, blank=True)  # prolonged length of stay
-
-
 class ICUstay(models.Model):
     """
     The class holding ICU stays:

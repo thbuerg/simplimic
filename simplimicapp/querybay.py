@@ -10,9 +10,11 @@ import json
 import django
 django.setup()
 import pandas as pd
+import numpy as np
 from pprint import pprint
 from django_pandas.io import read_frame
 from simplimicapp.models import *
+from simplimicapp.util import *
 
 
 class Query(object):
@@ -45,6 +47,7 @@ class Query(object):
         stays = ICUstay.objects.filter(admission__has_chartevents=True).values('icustayID', 'admission_id', 'subject')
         # stays = [(s['icustayID'], s['admission_id'], s['subject']) for s in stays]
         stays = pd.concat([pd.Series(s).to_frame().T for s in stays])
+        stays = stays.sort_values('icustayID')
         return stays
 
     def query_stay(self, id):
@@ -59,20 +62,22 @@ class Query(object):
 
         return events, meta
 
-    def get_stay_meta(self, id):
+    def get_stay_meta(self, id_):
         """
         Query the  meta information for an  icu stay.
+
+        Raise QueryError if there is no 1-to-1 mapping between stay and admission.
         :param id:
         :return:
         """
-        stay = ICUstay.objects.filter(icustayID=id).values('intime', 'outtime', 'admission_id', 'subject')
+        stay = ICUstay.objects.filter(icustayID=id_).values('intime', 'outtime', 'admission_id', 'subject')
         meta_df = read_frame(stay)
         meta_df['intime'] = pd.to_datetime(meta_df['intime'])
         meta_df['outtime'] = pd.to_datetime(meta_df['outtime'])
 
         # admission
         admission = Admission.objects.filter(admID=stay[0]['admission_id'])\
-            .values('adm_time', 'disch_time', 'inpmor', 'pdismor', 'read')
+            .values('adm_time', 'disch_time', 'death_time')
         admission_df = read_frame(admission)
 
         # patient
@@ -83,6 +88,21 @@ class Query(object):
         for df in [patient_df, admission_df]:
             for c in df.columns:
                 meta_df[c] = df[c]
+
+        for c in ['subject', 'admission_id']:
+            meta_df.loc[0, c] = int(re.search(re.compile('(\d+)'), meta_df.loc[0, c]).group())
+
+        # ensure a 1-to-1 mapping between admission and icustay:
+        n_stays = ICUstay.objects.filter(admission_id=meta_df['admission_id']).values('icustayID', 'subject')
+        n_stays = read_frame(n_stays)
+        if n_stays.shape[0] > 1:
+            # only keep the first stay:
+            if n_stays.loc[0, 'icustayID'] != id_:
+                raise ResourceWarning()
+
+        meta_df['icustay'] = int(id_)
+
+        meta_df.fillna(np.nan, inplace=True)
 
         return meta_df
 

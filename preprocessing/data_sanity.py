@@ -70,7 +70,7 @@ def clean_icu_stays():
     icustays.reset_index(inplace=True)
 
     for c in ['INTIME', 'OUTTIME']:
-        icustays[c] = pd.to_datetime(icustays[c])
+        icustays[c] = pd.to_datetime(icustays[c].fillna('1911-11-11 11:11:11'))
 
     icustays.to_csv(os.path.join(OUT_DIR, 'ICUSTAYS.csv'))
 
@@ -165,9 +165,9 @@ def clean_events(kind='CHART'):
 
         del events
         print('Dropping %s events due to invalid IDs' % len(droplist))
-        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'])
+        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'].fillna('1911-11-11 11:11:11'))
         if kind == 'CHART':
-            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'])
+            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'].fillna('1911-11-11 11:11:11'))
         events_to_edit.drop(droplist, inplace=True)
         with open(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind), 'a') as fobj:
             events_to_edit.to_csv(fobj, mode='a', header=fobj.tell() == 0)
@@ -193,7 +193,7 @@ def get_stays_csv():
     stays.set_index('HADM_ID', inplace=True)
 
     for c in ['INTIME', 'OUTTIME']:
-        stays[c] = pd.to_datetime(stays[c])
+        stays[c] = pd.to_datetime(stays[c].fillna('1911-11-11 11:11:11'))
 
     # drop the stays for which the HADM_ID is not in admissions:
     stays = stays.loc[valid_admission_ids]
