@@ -169,6 +169,9 @@ def clean_events(kind='CHART'):
 
         del events
         print('Dropping %s events due to invalid IDs' % len(droplist))
+        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'].fillna('1911-11-11 11:11:11'))
+        if kind == 'CHART':
+            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'].fillna('1911-11-11 11:11:11'))
         events_to_edit.drop(droplist, inplace=True)
         events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'])  #.fillna('1911-11-11 11:11:11'))
         if kind == 'CHART':
@@ -201,7 +204,7 @@ def get_stays_csv():
     stays.set_index('HADM_ID', inplace=True)
 
     for c in ['INTIME', 'OUTTIME']:
-        stays[c] = pd.to_datetime(stays[c])
+        stays[c] = pd.to_datetime(stays[c].fillna('1911-11-11 11:11:11'))
 
     # drop the stays for which the HADM_ID is not in admissions:
     stays = stays.loc[valid_admission_ids]
