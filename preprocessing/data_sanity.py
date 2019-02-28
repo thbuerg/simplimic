@@ -11,8 +11,8 @@ import numpy as np
 from shutil import copyfile
 
 
-MIMIC_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo'
-OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
+MIMIC_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw'
+OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
 # global MIMIC_DIR
 
 def clean_admissions():
@@ -70,8 +70,11 @@ def clean_icu_stays():
     icustays.reset_index(inplace=True)
 
     for c in ['INTIME', 'OUTTIME']:
-        icustays[c] = pd.to_datetime(icustays[c].fillna('1911-11-11 11:11:11'))
-
+        icustays[c] = pd.to_datetime(icustays[c])
+        
+    # drop where in and outtimes are missing:
+    icustays = icustays.loc[icustays['OUTTIME'].notnull()]
+    icustays = icustays.loc[icustays['INTIME'].notnull()]
     icustays.to_csv(os.path.join(OUT_DIR, 'ICUSTAYS.csv'))
 
     return icustays
@@ -93,14 +96,15 @@ def clean_events(kind='CHART'):
         stays = pd.read_csv(os.path.join(OUT_DIR, 'stays.csv'))
     except OSError:
         stays = get_stays_csv()
+    
+    stays.reset_index(inplace=True)
+    stays_by_icu = stays.set_index('ICUSTAY_ID')
+    stays_by_hadm = stays.set_index('HADM_ID')
 
     stays.reset_index(inplace=True)
 
     # read the events:
-    for events in pd.read_csv(os.path.join(MIMIC_DIR, '%sEVENTS.csv' % kind), chunksize=100000):
-
-        stays_by_icu = stays.set_index('ICUSTAY_ID')
-        stays_by_hadm = stays.set_index('HADM_ID')
+    for events in pd.read_csv(os.path.join(MIMIC_DIR, '%sEVENTS.csv' % kind), chunksize=500000):
 
         droplist = []
         events_to_edit = events.copy()
@@ -169,6 +173,10 @@ def clean_events(kind='CHART'):
         if kind == 'CHART':
             events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'].fillna('1911-11-11 11:11:11'))
         events_to_edit.drop(droplist, inplace=True)
+        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'])  #.fillna('1911-11-11 11:11:11'))
+        if kind == 'CHART':
+            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'].fillna('1911-11-11 11:11:11'))
+        events_to_edit = events_to_edit.loc[events_to_edit['CHARTTIME'].notnull()]
         with open(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind), 'a') as fobj:
             events_to_edit.to_csv(fobj, mode='a', header=fobj.tell() == 0)
 
@@ -184,6 +192,9 @@ def get_stays_csv():
     icustays = pd.read_csv(os.path.join(MIMIC_DIR, 'ICUSTAYS.csv'))
     assert icustays.shape[0] == icustays['ICUSTAY_ID'].nunique()
     assert icustays['ICUSTAY_ID'].isna().sum() == 0
+    
+    icustays = icustays.loc[icustays['OUTTIME'].notnull()]
+    icustays = icustays.loc[icustays['INTIME'].notnull()]
 
     stays = icustays.drop(['ROW_ID', 'DBSOURCE', 'FIRST_CAREUNIT',
                             'LAST_CAREUNIT', 'FIRST_WARDID',
