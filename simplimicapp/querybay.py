@@ -12,6 +12,7 @@ import json
 import django
 django.setup()
 import pandas as pd
+import numpy as np
 from pprint import pprint
 from django_pandas.io import read_frame
 from simplimicapp.models import *
@@ -85,6 +86,10 @@ class Query(object):
         for df in [patient_df, admission_df]:
             for c in df.columns:
                 meta_df[c] = df[c]
+                
+        meta_df['icustay'] = id
+
+        meta_df.fillna(np.nan, inplace=True)
 
         return meta_df
 
