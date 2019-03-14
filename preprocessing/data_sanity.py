@@ -11,8 +11,10 @@ import numpy as np
 from shutil import copyfile
 
 
-MIMIC_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw'
-OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
+# MIMIC_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw'
+MIMIC_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo'
+OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
+# OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
 # global MIMIC_DIR
 
 def clean_admissions():
@@ -91,9 +93,10 @@ def clean_diagnosis():
 
     # read map:
     icd9_map = dict()
-    with open(os.path.join(MIMIC_DIR, 'resources', 'ICD9_map.csv'), 'r') as infobj:
-        for k, v in infobj.readlines():
-            icd9_map[k] = v
+    map_df = pd.read_csv(os.path.join(os.path.dirname(MIMIC_DIR), 'resources', 'ICD9_map.csv'))
+
+    for _, r in map_df.iterrows():
+        icd9_map[r.values[0]] = r.values[1]
 
     try:
         stays = pd.read_csv(os.path.join(OUT_DIR, 'stays.csv'))
@@ -255,7 +258,6 @@ def get_stays_csv():
 - in case there is, get a fn to throw out the one with less information? (this would have to be based no the events files...)
 """
 
-
 def copy_raw_files():
     """
     Copy the raw files from the MIMIC_DIR to OUT_DIR:
@@ -267,6 +269,10 @@ def copy_raw_files():
              os.path.join(OUT_DIR, 'PATIENTS.csv'))
     copyfile(os.path.join(MIMIC_DIR, 'PRESCRIPTIONS.csv'),
              os.path.join(OUT_DIR, 'PRESCRIPTIONS.csv'))
+    copyfile(os.path.join(MIMIC_DIR, 'D_ITEMS.csv'),
+             os.path.join(OUT_DIR, 'D_ITEMS.csv'))
+    copyfile(os.path.join(MIMIC_DIR, 'D_LABITEMS.csv'),
+             os.path.join(OUT_DIR, 'D_LABITEMS.csv'))
 
 
 def main():

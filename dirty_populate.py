@@ -70,9 +70,9 @@ def generate_admissions():
     # generate an django entry for each row:
     models = []
     for i, r in adm_df.iterrows():    
-        p = SUBJECT.objects.get_or_create(subjectID=i)[0]
+        p = SUBJECT.objects.get_or_create(SUBJECT_ID=i)[0]
         m = ADMISSION(
-            SUBJECT = p,
+            SUBJECT=p,
             HADM_ID=r['HADM_ID'],
             ADMITTIME=r['ADMITTIME'],
             DISCHTIME=r['DISCHTIME'],
@@ -351,9 +351,9 @@ def generate_presriptions():
         adms = drugs_per_icustay['HADM_ID'].unique()
         assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions.'
 
-        a = ADMISSION.objects.get_or_create(admID=adms[0])[0]
-        p = SUBJECT.objects.get_or_create(subjectID=pids[0])[0]
-        i = ICUSTAY.objects.get_or_create(icustayID=icustay_id)[0]
+        a = ADMISSION.objects.get_or_create(HADM_ID=adms[0])[0]
+        p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
+        i = ICUSTAY.objects.get_or_create(ICUSTAY_ID=icustay_id)[0]
 
         models = []
         for idx, r in drugs_per_icustay.iterrows():

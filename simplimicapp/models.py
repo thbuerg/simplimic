@@ -63,6 +63,7 @@ class ADMISSION(models.Model):
     HOSPITAL_EXPIRE_FLAG = models.BooleanField(default=None) # TODO find out what this is
     HAS_CHARTEVENTS_DATA = models.BooleanField(default=None)
 
+
 class ICUSTAY(models.Model):
     """
     The class holding ICU stays:
