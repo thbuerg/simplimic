@@ -4,6 +4,8 @@ In memory of the days in:
 
 """
 import os
+import sys
+import simplimic.settings
 os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
 import re
 import json
@@ -87,6 +89,10 @@ class Query(object):
         for df in [subject_df, admission_df]:
             for c in df.columns:
                 meta_df[c] = df[c]
+                
+        meta_df['icustay'] = id
+
+        meta_df.fillna(np.nan, inplace=True)
 
         for c in ['SUBJECT', 'ADMISSION']:
             meta_df.loc[0, c] = int(re.search(re.compile('(\d+)'), meta_df.loc[0, c]).group())
