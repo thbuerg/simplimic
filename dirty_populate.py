@@ -9,6 +9,7 @@ from simplimicapp.models import *
 #DATADIR = '/Users/buergelt/projects/thesis/data/mimic_proc_all'
 DATADIR= sys.argv[1]
 
+
 def djangify_dataframe(df, model):
     """
     iterates over the rows of a pandas df and creates a django model for each row!

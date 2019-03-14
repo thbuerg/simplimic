@@ -13,26 +13,49 @@ sys.path.append("../simplimic")
 os.environ['DJANGO_SETTINGS_MODULE'] = 'simplimic.settings'
 django.setup()
 from django_pandas.io import read_frame
+from simplimicapp.models import *
 
 
 def add_hours_elpased_to_events(events, dt, remove_charttime=True):
     """
+<<<<<<< HEAD
     Yet another helper stolen from the good people at:
     https://github.com/YerevaNN/mimic3-benchmarks/blob/master/mimic3benchmark/subject.py
     <3
     :param events:
     :param dt:
     :param remove_charttime:
+=======
+    Queries the information on the corresponding admission and outputs:
+     - an xarray with all descriptor values (unpreprocessed)in destacked long form (date_time index).
+        dim0: time
+        dim1: itemIDs
+        dim2: param (e.g.: value, unit, flag, kind)
+     - a df holding the meta information on Subject, Outcome, Diagnosis.
+    :param admID:
+>>>>>>> ef51ef1d6af2ad98f8afd2d127f732db4877db2c
     :return:
     """
     if not isinstance(events['chart_time'].values[0], datetime.datetime):
         events['chart_time'] = pd.to_datetime(events['chart_time'])
 
+<<<<<<< HEAD
     events['hours'] = (events['chart_time'] - dt).apply(lambda s: s / np.timedelta64(1, 's')) / 60./60
     if remove_charttime:
         del events['chart_time']
     return events
 
+=======
+    # get the info on the admission period:
+    admission = Admission.objects.filter(admID=admID)
+    admission_df = read_frame(admission).set_index('admID')
+    
+    # get info on diagnosis:
+    diagnoses = Diagnosis.objects.filter(admID=admID)
+    diagnoses_df = read_frame(diagnoses).set_index('admID')
+    
+    return descriptor_ds, admission_df, diagnoses_df
+>>>>>>> ef51ef1d6af2ad98f8afd2d127f732db4877db2c
 
 def _events_to_ts(events, variable_col, value, variables=[]):
     """
@@ -241,7 +264,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
 
