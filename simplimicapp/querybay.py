@@ -12,6 +12,7 @@ django.setup()
 import pandas as pd
 import numpy as np
 from pprint import pprint
+from datetime import timedelta
 from django_pandas.io import read_frame
 from simplimicapp.models import *
 from simplimicapp.util import *
@@ -24,7 +25,6 @@ class Query(object):
     def __init__(self, FLAGS):
         super(Query, self).__init__()
         self.FLAGS = FLAGS  # namespace object to hold the path to settings py and other stuff
-        self.columns = ('chart_time', 'value', 'unit')
 
         with open(self.FLAGS.chartitems, 'r') as infobj:
             self.chartitems = json.load(infobj)
@@ -34,20 +34,19 @@ class Query(object):
         # get list of all stays:
         self.stays_map = self._get_stays_map()
 
-        # self._initialize()
-    #
-    # def _initialize(self):
-        ##TODO: rewrite into regular init?
-        # """
-        # initialize the query and establish a connection to the database
-        # :return:
-        # """
     def _get_stays_map(self):
         """ GEt a list of all stay IDs in the  database """
-        stays = ICUstay.objects.filter(admission__has_chartevents=True).values('icustayID', 'admission_id', 'subject')
-        # stays = [(s['icustayID'], s['admission_id'], s['subject']) for s in stays]
+        stays = ICUSTAY.objects.filter(
+            ADMISSION__ADMITTIME__range=(
+                django.db.models.F('SUBJECT__DOB' + timedelta(years=18)),
+                django.db.models.F('SUBJECT__DOB' + timedelta(years=110))),
+            ADMISSION__HAS_CHARTEVENTS_DATA=True,
+            DBSOURCE__exact='metavision').values('ICUSTAY_ID', 'ADMISSION', 'SUBJECT')
+
+        # for each stay check if there are chartevents from metavision and if not, drop the stay\
         stays = pd.concat([pd.Series(s).to_frame().T for s in stays])
-        stays = stays.sort_values('icustayID')
+        stays = stays.sort_values('ICUSTAY_ID')
+
         return stays
 
     def query_stay(self, id):
@@ -70,37 +69,37 @@ class Query(object):
         :param id:
         :return:
         """
-        stay = ICUstay.objects.filter(icustayID=id_).values('intime', 'outtime', 'admission_id', 'subject')
+        stay = ICUSTAY.objects.filter(ICUSTAY_ID=id_).values('INTIME', 'OUTTIME', 'ADMISSION', 'SUBJECT')
         meta_df = read_frame(stay)
-        meta_df['intime'] = pd.to_datetime(meta_df['intime'])
-        meta_df['outtime'] = pd.to_datetime(meta_df['outtime'])
+        meta_df['INTIME'] = pd.to_datetime(meta_df['INTIME'])
+        meta_df['OUTTIME'] = pd.to_datetime(meta_df['OUTTIME'])
 
         # admission
-        admission = Admission.objects.filter(admID=stay[0]['admission_id'])\
-            .values('adm_time', 'disch_time', 'death_time')
+        admission = ADMISSION.objects.filter(HADM_ID=stay[0]['ADMISSION'])\
+            .values('ADMITTIME', 'DISCHTIME', 'DEATHTIME')
         admission_df = read_frame(admission)
 
-        # patient
-        patient = Patient.objects.filter(subjectID=stay[0]['subject'])\
-            .values('gender', 'age', 'date_of_death_hosp')
-        patient_df = read_frame(patient)
+        # subject
+        subject = SUBJECT.objects.filter(SUBJECT_ID=stay[0]['SUBJECT'])\
+            .values('GENDER', 'DOD_HOSP')
+        subject_df = read_frame(subject)
 
-        for df in [patient_df, admission_df]:
+        for df in [subject_df, admission_df]:
             for c in df.columns:
                 meta_df[c] = df[c]
 
-        for c in ['subject', 'admission_id']:
+        for c in ['SUBJECT', 'ADMISSION']:
             meta_df.loc[0, c] = int(re.search(re.compile('(\d+)'), meta_df.loc[0, c]).group())
 
         # ensure a 1-to-1 mapping between admission and icustay:
-        n_stays = ICUstay.objects.filter(admission_id=meta_df['admission_id']).values('icustayID', 'subject')
+        n_stays = ICUSTAY.objects.filter(ADMISSION=meta_df['ADMISSION']).values('ICUSTAY_ID', 'SUBJECT')
         n_stays = read_frame(n_stays)
         if n_stays.shape[0] > 1:
             # only keep the first stay:
-            if n_stays.loc[0, 'icustayID'] != id_:
+            if n_stays.loc[0, 'ICUSTAY_ID'] != id_:
                 raise ResourceWarning()
 
-        meta_df['icustay'] = int(id_)
+        meta_df['ICUSTAY'] = int(id_)
 
         meta_df.fillna(np.nan, inplace=True)
 
@@ -114,15 +113,22 @@ class Query(object):
         # read in the items.json and get the terms we want
         events = []
         for descriptor, item in self.chartitems.items():
-            var_events = ChartEventValue.objects.filter(icustay=icustay_id, itemID__exact=item).values(*self.columns)
+            var_events = CHARTEVENTVALUE.objects.filter(
+                ICUSTAY=icustay_id,
+                ITEM__ITEMID__exact=item,
+                ITEM__DBSOURCE__exact='metavision').values('CHARTTIME', 'VALUE', 'UNIT')
+                                                    # TODO: check what we want!!!
+                                                    # ).values('ITEM__ITEMID', 'CHARTTIME', 'VALUE', 'UNIT')
             var_events = read_frame(var_events)
-            var_events['variable'] = descriptor
-            var_events['icustayID'] = icustay_id
-            var_events.set_index('variable', inplace=True)
+            # var_events['ITEMID'] = var_events['ITEM__ITEMID']
+            # var_events.drop('ITEMID', inplace=True)
+            var_events['VARIABLE'] = descriptor
+            var_events['ICUSTAY'] = icustay_id
+            var_events.set_index('VARIABLE', inplace=True)
             events.append(var_events)
 
         events = pd.concat(events, axis=0)
-        events['kind'] = 'chart'
+        events['KIND'] = 'chart'
         return events
 
     def get_stay_lab_timeseries(self, icustay_id):
@@ -131,27 +137,31 @@ class Query(object):
         :param icustay_id:
         :return:
         """
-        stay = ICUstay.objects.filter(icustayID=icustay_id).values('intime', 'outtime', 'admission_id')
+        stay = ICUSTAY.objects.filter(ICUSTAY_ID=icustay_id).values('INTIME', 'OUTTIME', 'ADMISSION')
         assert len(stay) == 1
 
-        intime = pd.to_datetime(stay[0]['intime'])
-        outtime = pd.to_datetime(stay[0]['outtime'])
-        admission_id = stay[0]['admission_id']
+        intime = pd.to_datetime(stay[0]['INTIME'])
+        outtime = pd.to_datetime(stay[0]['OUTTIME'])
+        admission_id = stay[0]['ADMISSION']
 
         # now query the relevant lab events:
         events = []
         for descriptor, item in self.labitems.items():
-            var_events = LabEventValue.objects.filter(admission=admission_id,
-                                                      chart_time__gte=intime,
-                                                      chart_time__lte=outtime
-                                                      ).values(*self.columns)
+            var_events = LABEVENTVALUE.objects.filter(ADMISSION=admission_id,
+                                                      CHARTTIME__gte=intime,
+                                                      CHARTTIME__lte=outtime
+                                                      ).values('CHARTTIME', 'VALUE', 'UNIT')
+            # TODO: check what we want!!!
+                                                      # ).values('ITEM__ITEMID', 'CHARTTIME', 'VALUE', 'UNIT')
             var_events = read_frame(var_events)
-            var_events['variable'] = descriptor
-            var_events['icustayID'] = icustay_id
-            var_events.set_index('variable', inplace=True)
+            # var_events['ITEMID'] = var_events['ITEM__ITEMID']
+            # var_events.drop('ITEMID', inplace=True)
+            var_events['VARIABLE'] = descriptor
+            var_events['ICUSTAY'] = icustay_id
+            var_events.set_index('VARIABLE', inplace=True)
             events.append(var_events)
         events = pd.concat(events, axis=0)
-        events['kind'] = 'lab'
+        events['KIND'] = 'lab'
         return events
 
 

@@ -80,6 +80,41 @@ def clean_icu_stays():
     return icustays
 
 
+# TODO imlement:
+def clean_diagnosis():
+    """
+    go over DIAGNOSIS.csv and  throw out the rows which are faulty
+    :return:
+    """
+    diagnoses = pd.read_csv(os.path.join(MIMIC_DIR, 'DIAGNOSES_ICD.csv'))
+    diagnoses.set_index('HADM_ID', inplace=True)
+
+    # read map:
+    icd9_map = dict()
+    with open(os.path.join(MIMIC_DIR, 'resources', 'ICD9_map.csv'), 'r') as infobj:
+        for k, v in infobj.readlines():
+            icd9_map[k] = v
+
+    try:
+        stays = pd.read_csv(os.path.join(OUT_DIR, 'stays.csv'))
+    except OSError:
+        stays = get_stays_csv()
+
+    # throw out the diagnoses that are not in stays
+    stays.reset_index(inplace=True)
+    stays.set_index('HADM_ID', inplace=True)
+
+    # find intersection:
+    hadmids = set(stays.index.values.tolist()).intersection(diagnoses.index.unique().values.tolist())
+    diagnoses = diagnoses.loc[sorted(list(hadmids))]
+
+    # map to highlevel:
+    diagnoses['ICD_CLASS'] = diagnoses['ICD9_CODE'].map(icd9_map)
+
+    # save
+    diagnoses.to_csv(os.path.join(OUT_DIR, 'DIAGNOSES_ICD.csv'))
+
+
 def clean_events(kind='CHART'):
     """
     Go over an xxxEVENTS.csv  and lookup the ICUSTAY/ADMISSION ID combo in the stays mapping.
@@ -239,10 +274,11 @@ def main():
     if not os.path.exists(OUT_DIR):
         os.mkdir(OUT_DIR)
     copy_raw_files()
-    clean_admissions()
-    clean_icu_stays()
-    clean_events()
-    clean_events(kind='LAB')
+    clean_diagnosis()
+    # clean_admissions()
+    # clean_icu_stays()
+    # clean_events()
+    # clean_events(kind='LAB')
 
 
 if __name__ == '__main__':

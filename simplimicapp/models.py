@@ -1,27 +1,33 @@
 from django.db import models
 
 
-class Patient(models.Model):
+class SUBJECT(models.Model):
     """
     The patient class for MIMIC-III.
+
+    "ROW_ID","SUBJECT_ID","GENDER","DOB","DOD","DOD_HOSP","DOD_SSN","EXPIRE_FLAG"
 
     we keeo all  fields except row-IDs.
     """
     # TODO: 1. Determine if the pre-pop-processing will:
     # TODO:     - integerize static patients vars (GENDER, ETHNICITY)
-    subjectID = models.IntegerField(default=None, primary_key=True)
-    gender = models.CharField(max_length=10)
-    age = models.IntegerField(default=0)
-    date_of_birth = models.CharField(default=None, max_length=20)
-    date_of_death = models.CharField(default=None, max_length=20)
-    date_of_death_hosp = models.CharField(default=None, max_length=20)
-    date_of_death_ssn = models.CharField(default=None, max_length=20)   # ssn = stationary?
-    expire_flag = models.BooleanField(default=None)   # TODO: is there a default?
+    SUBJECT_ID = models.IntegerField(default=None, primary_key=True)
+    GENDER = models.CharField(max_length=10)
+    DOB = models.CharField(default=None, max_length=20)
+    DOD = models.CharField(default=None, max_length=20)
+    DOD_HOSP = models.CharField(default=None, max_length=20)
+    DOD_SSN = models.CharField(default=None, max_length=20)   # ssn = stationary?
+    EXPIRE_FLAG = models.BooleanField(default=None)   # TODO: is there a default?
 
 
-class Admission(models.Model):
+class ADMISSION(models.Model):
     """
     Holds the information for a single admission period.
+
+    "ROW_ID","SUBJECT_ID","HADM_ID","ADMITTIME","DISCHTIME","DEATHTIME","ADMISSION_TYPE",
+    "ADMISSION_LOCATION","DISCHARGE_LOCATION","INSURANCE","LANGUAGE","RELIGION","MARITAL_STATUS",
+    "ETHNICITY","EDREGTIME","EDOUTTIME","DIAGNOSIS","HOSPITAL_EXPIRE_FLAG","HAS_CHARTEVENTS_DATA"
+
     """
     ADMISSION_CHOICES = (    # TODO: since we're storing real data now: do we still want these?
         ('Elective',
@@ -35,49 +41,51 @@ class Admission(models.Model):
     )
 
     # meta
-    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admID = models.IntegerField(default=None,  primary_key=True)
+    SUBJECT = models.ForeignKey('SUBJECT', on_delete=models.CASCADE)
+    HADM_ID = models.IntegerField(default=None,  primary_key=True)
     # adm_time = models.CharField(default=None, max_length=20, null=True, blank=True)
-    adm_time = models.DateTimeField(null=True, blank=True)
+    ADMITTIME = models.DateTimeField(null=True, blank=True)
     # disch_time = models.CharField(default=None, max_length=20, null=True, blank=True)
-    disch_time = models.DateTimeField(null=True, blank=True)
+    DISCHTIME = models.DateTimeField(null=True, blank=True)
     # death_time = models.CharField(default=None, max_length=20, null=True, blank=True)
-    death_time = models.DateTimeField(default=None, null=True, blank=True)
-    adm_type = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=2)
-    adm_location = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
-    disch_location = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
-    insurance = models.CharField(default=None, max_length=15)  # TODO: get choices for this?
-    language = models.CharField(default=None, max_length=10)  # may be `nan` (still str)
-    religion = models.CharField(default=None, max_length=10)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
-    marital_status = models.CharField(default=None, max_length=10)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
-    ethnicity = models.CharField(default=None, max_length=50)
-    edregtime = models.DateTimeField(default=None, null=True, blank=True)
-    edouttime = models.DateTimeField(default=None, null=True, blank=True)
-    init_diagnosis = models.CharField(default=None, max_length=100)  # some of them are really detailed in description -> definitively better to use codes
-    hosp_exp_flag = models.BooleanField(default=None) # TODO find out what this is
-    has_chartevents = models.BooleanField(default=None)
+    DEATHTIME = models.DateTimeField(default=None, null=True, blank=True)
+    ADMISSION_TYPE = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=2)
+    ADMISSION_LOCATION = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
+    DISCHARGE_LOCATION = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
+    INSURANCE = models.CharField(default=None, max_length=15)  # TODO: get choices for this?
+    LANGUAGE = models.CharField(default=None, max_length=10)  # may be `nan` (still str)
+    RELIGION = models.CharField(default=None, max_length=10)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
+    MARITAL_STATUS = models.CharField(default=None, max_length=10)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
+    ETHNICITY = models.CharField(default=None, max_length=50)
+    EDREGTIME = models.DateTimeField(default=None, null=True, blank=True)
+    EDOUTTIME = models.DateTimeField(default=None, null=True, blank=True)
+    DIAGNOSIS = models.CharField(default=None, max_length=100)  # some of them are really detailed in description -> definitively better to use codes
+    HOSPITAL_EXPIRE_FLAG = models.BooleanField(default=None) # TODO find out what this is
+    HAS_CHARTEVENTS_DATA = models.BooleanField(default=None)
 
-class ICUstay(models.Model):
+class ICUSTAY(models.Model):
     """
     The class holding ICU stays:
    "ROW_ID","SUBJECT_ID","HADM_ID","ICUSTAY_ID","DBSOURCE","FIRST_CAREUNIT","LAST_CAREUNIT", \
    "FIRST_WARDID","LAST_WARDID","INTIME","OUTTIME","LOS"
     """
-    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
-    icustayID = models.IntegerField(default=None,  primary_key=True)
-    db_source = models.CharField(default=None,  max_length=10) # TODO we most vertainly want a choice here
-    first_cu = models.CharField(default=None,  max_length=10)
-    last_cu = models.CharField(default=None,  max_length=10)
-    first_ward_id = models.IntegerField(default=None)
-    last_ward_id = models.IntegerField(default=None)
-    intime = models.DateTimeField(default=None)  # important field.
-    outtime = models.DateTimeField(default=None)  # important field.
-    los = models.IntegerField(default=None)
+    SUBJECT = models.ForeignKey('SUBJECT', on_delete=models.CASCADE)
+    ADMISSION = models.ForeignKey('ADMISSION', on_delete=models.CASCADE)
+    ICUSTAY_ID = models.IntegerField(default=None,  primary_key=True)
+    DBSOURCE = models.CharField(default=None,  max_length=10) # TODO we most vertainly want a choice here
+    FIRST_CAREUNIT = models.CharField(default=None,  max_length=10)
+    LAST_CAREUNIT = models.CharField(default=None,  max_length=10)
+    FIRST_WARDID = models.IntegerField(default=None)
+    LAST_WARDID = models.IntegerField(default=None)
+    INTIME = models.DateTimeField(default=None)  # important field.
+    OUTTIME = models.DateTimeField(default=None)  # important field.
+    LOS = models.IntegerField(default=None)
 
 
-class ChartEventValue(models.Model):
+class CHARTEVENTVALUE(models.Model):
     """
+    "ROW_ID","SUBJECT_ID","HADM_ID","ICUSTAY_ID","ITEMID","CHARTTIME","STORETIME","CGID","VALUE",
+    "VALUENUM","VALUEUOM","WARNING","ERROR","RESULTSTATUS","STOPPED"
     This holds a single lab value
     itemID
     timestamps
@@ -86,83 +94,108 @@ class ChartEventValue(models.Model):
     """
 
     # keys
-    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
-    icustay = models.ForeignKey('ICUstay', on_delete=models.CASCADE)
+    SUBJECT = models.ForeignKey('SUBJECT', on_delete=models.CASCADE)
+    ADMISSION = models.ForeignKey('ADMISSION', on_delete=models.CASCADE)
+    ICUSTAY = models.ForeignKey('ICUSTAY', on_delete=models.CASCADE)
+    ITEM = models.ForeignKey('CHARTITEM', on_delete=models.CASCADE)
 
     # Fields:
-    itemID = models.IntegerField(default=None) #, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
-    chart_time = models.DateTimeField(default=None) #, max_length=20)
-    store_time = models.DateTimeField(default=None, null=True, blank=True) #, max_length=20, null=True, blank=True)
-    cgID = models.CharField(default=None, max_length=10, null=True, blank=True)
-    value = models.CharField(default=None, max_length=10)
-    valuenum = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
-    unit = models.CharField(max_length=10)
-    warning = models.CharField(default=None, max_length=25, null=True, blank=True)
-    error = models.CharField(default=None, max_length=25, null=True, blank=True)
-    resultstatus = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
-    stopped = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
+    CHARTTIME = models.DateTimeField(default=None) #, max_length=20)
+    STORETIME = models.DateTimeField(default=None, null=True, blank=True) #, max_length=20, null=True, blank=True)
+    CGID = models.CharField(default=None, max_length=10, null=True, blank=True)
+    VALUE = models.CharField(default=None, max_length=10)
+    VALUENUM = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
+    UNIT = models.CharField(max_length=10)
+    WARNING = models.CharField(default=None, max_length=25, null=True, blank=True)
+    ERROR = models.CharField(default=None, max_length=25, null=True, blank=True)
+    RESULTSTATUS = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
+    STOPPED = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
 
 
-class LabEventValue(models.Model):
+class LABEVENTVALUE(models.Model):
     """
     This holds a single lab value
     itemID
     timestamps
     value
     unit (valueuom)
+
+    "ROW_ID","SUBJECT_ID","HADM_ID","ITEMID","CHARTTIME","VALUE","VALUENUM","VALUEUOM","FLAG"
     """
     
     # keys
-    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
+    SUBJECT = models.ForeignKey('SUBJECT', on_delete=models.CASCADE)
+    ADMISSION = models.ForeignKey('ADMISSION', on_delete=models.CASCADE)
+    ITEM = models.ForeignKey('LABITEM', on_delete=models.CASCADE)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
 
     # Fields:
-    itemID = models.IntegerField(default=None)#, primary_key=True)   # TODO sure? it might actually  be smart to have squential keys...
-    # chart_time = models.CharField(default=None, max_length=20, blank=True, null=True)
-    chart_time = models.DateTimeField(default=None, blank=True, null=True)
-    value = models.CharField(default=None, max_length=10, blank=True, null=True)
-    valuenum = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
-    unit = models.CharField(max_length=10, null=True, blank=True)
-    flag = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
+    CHARTTIME = models.DateTimeField(default=None, blank=True, null=True)
+    VALUE = models.CharField(default=None, max_length=10, blank=True, null=True)
+    VALUENUM = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
+    UNIT = models.CharField(max_length=10, null=True, blank=True)
+    FLAG = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
 
 
-class Service(models.Model):
+class SERVICE(models.Model):
     """
     Holds information on the servive
     "SUBJECT_ID","HADM_ID","TRANSFERTIME","PREV_SERVICE","CURR_SERVICE"
     """
     # keys
-    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
+    SUBJECT = models.ForeignKey('SUBJECT', on_delete=models.CASCADE)
+    ADMISSION = models.ForeignKey('ADMISSION', on_delete=models.CASCADE)
 
     # fields:
-    transfertime = models.CharField(default=None, max_length=20)
+    TRANSFERTIME = models.CharField(default=None, max_length=20)
 
     # TODO: standardize through choices?
-    prev_service = models.CharField(default=None, max_length=10)
-    curr_service = models.CharField(default=None, max_length=10)
+    PREV_SERVICE = models.CharField(default=None, max_length=10)
+    CURR_SERVICE = models.CharField(default=None, max_length=10)
 
 
-class Diagnosis(models.Model):
+class CHARTITEM(models.Model):
+    """
+    "ROW_ID","ITEMID","LABEL","ABBREVIATION","DBSOURCE","LINKSTO","CATEGORY","UNITNAME","PARAM_TYPE","CONCEPTID"
+    """
+    ITEMID = models.IntegerField(primary_key=True, default=None)
+    LABEL = models.CharField(default=None, max_length=100, null=True, blank=True)
+    ABBREVIATION = models.CharField(default=None, max_length=100, null=True, blank=True)
+    DBSOURCE = models.CharField(default=None, max_length=100, null=True, blank=True)
+    LINKSTO = models.CharField(default=None, max_length=100, null=True, blank=True)
+    CATEGORY = models.CharField(default=None, max_length=100, null=True, blank=True)
+    UNITNAME = models.CharField(default=None, max_length=100, null=True, blank=True)
+    PARAM_TYPE = models.CharField(default=None, max_length=100, null=True, blank=True)
+    CONCEPTID = models.CharField(default=None, max_length=100, null=True, blank=True)
+
+
+class LABITEM(models.Model):
+    """
+    "ROW_ID","ITEMID","LABEL","FLUID","CATEGORY","LOINC_CODE"
+    """
+    ITEMID = models.IntegerField(primary_key=True, default=None)
+    LABEL = models.CharField(default=None, max_length=100, null=True, blank=True)
+    FLUID = models.CharField(default=None, max_length=100, null=True, blank=True)
+    CATEGORY = models.CharField(default=None, max_length=100, null=True, blank=True)
+    LOINC_CODE = models.CharField(default=None, max_length=100, null=True, blank=True)
+
+
+class DIAGNOSIS(models.Model):
     """
     Holds information on the diagnosis.
     "ROW_ID","SUBJECT_ID","HADM_ID","SEQ_NUM","ICD9_CODE"
     """
     # keys
-    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
+    SUBJECT = models.ForeignKey('SUBJECT', on_delete=models.CASCADE)
+    ADMISSION = models.ForeignKey('ADMISSION', on_delete=models.CASCADE)
     # no ICU here
 
     # fields
-    seq_num = models.IntegerField(default=None)     # e.g. the rank of the diagnosis in the end of the admission
-    icd_code = models.IntegerField(primary_key=True)
-
-    # TODO: map this in prepopproc?:
-    #icd_class = models.IntegerField()
+    SEQ_NUM = models.IntegerField(default=None, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
+    ICD9_CODE = models.IntegerField(default=None, null=True, blank=True)
+    ICD_CLASS = models.IntegerField(default=None, null=True, blank=True)
 
 
-class Prescription(models.Model):
+class PRESCRIPTION(models.Model):
     """
     Holds information about a drug
     """
@@ -175,23 +208,23 @@ class Prescription(models.Model):
         # TODO: implement
     )
     # keys
-    subject = models.ForeignKey('Patient', on_delete=models.CASCADE)
-    admission = models.ForeignKey('Admission', on_delete=models.CASCADE)
-    icustay = models.ForeignKey('ICUstay', on_delete=models.CASCADE)
+    SUBJECT = models.ForeignKey('SUBJECT', on_delete=models.CASCADE)
+    ADMISSION = models.ForeignKey('ADMISSION', on_delete=models.CASCADE)
+    ICUSTAY = models.ForeignKey('ICUSTAY', on_delete=models.CASCADE)
 
     # fields
-    start_date = models.CharField(default=None, max_length=20, null=True)
-    end_date = models.CharField(default=None, max_length=20, null=True)
-    drug_type = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1, null=True)
-    drug = models.CharField(default=None, max_length=25, null=True)#, primary_key=True)   # TODO: check  if we want primary key here
-    drug_name_poe = models.CharField(default=None, max_length=25, null=True)
-    drug_name_generic = models.CharField(default=None, max_length=25, null=True)
-    formulary_drug_cd = models.CharField(default=None, max_length=15, null=True)
-    gsn = models.FloatField(default=None, null=True, blank=True)  # this is mostly INTs but some NaNs  disallow intfield.
-    ndc = models.FloatField(default=None, null=True, blank=True)
-    prod_strength = models.CharField(default=None, max_length=25, null=True)
-    dose_val_rx = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
-    dose_unit_rx = models.CharField(default=None, max_length=25, null=True)
-    form_val_disp = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
-    form_unit_disp = models.CharField(default=None, max_length=25, null=True)
+    STARTDATE = models.CharField(default=None, max_length=20, null=True)
+    ENDDATE = models.CharField(default=None, max_length=20, null=True)
+    DRUG_TYPE = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1, null=True)
+    DRUG = models.CharField(default=None, max_length=25, null=True)#, primary_key=True)   # TODO: check  if we want primary key here
+    DRUG_NAME_POE = models.CharField(default=None, max_length=25, null=True)
+    DRUG_NAME_GENERIC = models.CharField(default=None, max_length=25, null=True)
+    FORMULARY_DRUG_CD = models.CharField(default=None, max_length=15, null=True)
+    GSN = models.FloatField(default=None, null=True, blank=True)  # this is mostly INTs but some NaNs  disallow intfield.
+    NDC = models.FloatField(default=None, null=True, blank=True)
+    PROD_STRENGTH = models.CharField(default=None, max_length=25, null=True)
+    DOSE_VAL_RX = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
+    DOSE_UNIT_RX = models.CharField(default=None, max_length=25, null=True)
+    FORM_VAL_DISP = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
+    FORM_UNIT_DISP = models.CharField(default=None, max_length=25, null=True)
     route = models.CharField(default=None, max_length=25, null=True)   # TODO: establish a CHOICE set here that is hierarchical!

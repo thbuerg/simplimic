@@ -135,7 +135,7 @@ def get_meta_info(icustay_id):
     :param icustay_id:
     :return:
     """
-    stay = ICUstay.objects.filter(icustayID=icustay_id)
+    stay = ICUSTAY.objects.filter(icustayID=icustay_id)
     stay = read_frame(stay)
     stay['intime'] = pd.to_datetime(stay['intime'])
     stay['outtime'] = pd.to_datetime(stay['outtime'])
@@ -172,13 +172,11 @@ def get_all_stays_info():
     2. for every icustay, get the meta info as well as the ts data
     :return:
     """
-    # TODO: extend this fn to return VALUEUOM/UNIT/ETC as well. Currently it is only the values.
-
-    all_stays = ICUstay.objects.all()
+    all_stays = ICUSTAY.objects.filter(DBSOURCE__exact='metavision')
     all_stays = read_frame(all_stays)
 
     #all_stays_ids = [re.search(re.compile('(\d+)'), obj_str).group() for obj_str in all_stays['icustayID']]
-    all_stays_ids = all_stays['icustayID'].values
+    all_stays_ids = all_stays['ICUSTAYID'].values
     del all_stays
 
     all_stays_chart = []
