@@ -53,9 +53,9 @@ class ADMISSION(models.Model):
     ADMISSION_LOCATION = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
     DISCHARGE_LOCATION = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
     INSURANCE = models.CharField(default=None, max_length=15)  # TODO: get choices for this?
-    LANGUAGE = models.CharField(default=None, max_length=10)  # may be `nan` (still str)
-    RELIGION = models.CharField(default=None, max_length=10)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
-    MARITAL_STATUS = models.CharField(default=None, max_length=10)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
+    LANGUAGE = models.CharField(default=None, max_length=10, blank=True, null=True)  # may be `nan` (still str)
+    RELIGION = models.CharField(default=None, max_length=10, blank=True, null=True)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
+    MARITAL_STATUS = models.CharField(default=None, max_length=10, blank=True, null=True)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
     ETHNICITY = models.CharField(default=None, max_length=50)
     EDREGTIME = models.DateTimeField(default=None, null=True, blank=True)
     EDOUTTIME = models.DateTimeField(default=None, null=True, blank=True)
@@ -191,9 +191,9 @@ class DIAGNOSIS(models.Model):
     # no ICU here
 
     # fields
-    SEQ_NUM = models.IntegerField(default=None, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
-    ICD9_CODE = models.IntegerField(default=None, null=True, blank=True)
-    ICD_CLASS = models.IntegerField(default=None, null=True, blank=True)
+    SEQ_NUM = models.IntegerField(default=None, max_length=20, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
+    ICD9_CODE = models.CharField(default=None, max_length=20, null=True, blank=True)
+    ICD_CLASS = models.CharField(default=None, max_length=20, null=True, blank=True)
 
 
 class PRESCRIPTION(models.Model):
@@ -228,4 +228,4 @@ class PRESCRIPTION(models.Model):
     DOSE_UNIT_RX = models.CharField(default=None, max_length=25, null=True)
     FORM_VAL_DISP = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
     FORM_UNIT_DISP = models.CharField(default=None, max_length=25, null=True)
-    route = models.CharField(default=None, max_length=25, null=True)   # TODO: establish a CHOICE set here that is hierarchical!
+    ROUTE = models.CharField(default=None, max_length=25, null=True)   # TODO: establish a CHOICE set here that is hierarchical!

@@ -281,10 +281,10 @@ def main():
         os.mkdir(OUT_DIR)
     copy_raw_files()
     clean_diagnosis()
-    # clean_admissions()
-    # clean_icu_stays()
-    # clean_events()
-    # clean_events(kind='LAB')
+    clean_admissions()
+    clean_icu_stays()
+    clean_events()
+    clean_events(kind='LAB')
 
 
 if __name__ == '__main__':

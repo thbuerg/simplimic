@@ -6,8 +6,8 @@
 # conda activate py37 
 
 # 1. clear db
-touch db.sqlite3_RAW_TEST
-rm db.sqlite3_RAW_TEST
+touch db.sqlite3_RAW_v2
+rm db.sqlite3_RAW_v2
 
 # 2. clear migrations
 touch simplimicapp/migrations/000xinitial

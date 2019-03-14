@@ -40,9 +40,10 @@ class Query(object):
         """ GEt a list of all stay IDs in the  database """
         stays = ICUSTAY.objects.filter(
             ADMISSION__ADMITTIME__range=(
-                django.db.models.F('SUBJECT__DOB' + timedelta(years=18)),
-                django.db.models.F('SUBJECT__DOB' + timedelta(years=110))),
+                django.db.models.F('SUBJECT__DOB' + timedelta(years=self.FLAGS.agerange[0])),
+                django.db.models.F('SUBJECT__DOB' + timedelta(years=self.FLAGS.agerange[1]))),
             ADMISSION__HAS_CHARTEVENTS_DATA=True,
+            LOS__range=(self.FLAGS.losrange[0], self.FLAGS.losrange[1]),
             DBSOURCE__exact='metavision').values('ICUSTAY_ID', 'ADMISSION', 'SUBJECT')
 
         # for each stay check if there are chartevents from metavision and if not, drop the stay\
@@ -78,12 +79,12 @@ class Query(object):
 
         # admission
         admission = ADMISSION.objects.filter(HADM_ID=stay[0]['ADMISSION'])\
-            .values('ADMITTIME', 'DISCHTIME', 'DEATHTIME')
+            .values('ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'HOSPITAL_EXPIRE_FLAG')
         admission_df = read_frame(admission)
 
         # subject
         subject = SUBJECT.objects.filter(SUBJECT_ID=stay[0]['SUBJECT'])\
-            .values('GENDER', 'DOD_HOSP')
+            .values('GENDER', 'DOD_HOSP', 'EXPIRE_FLAG')
         subject_df = read_frame(subject)
 
         for df in [subject_df, admission_df]:

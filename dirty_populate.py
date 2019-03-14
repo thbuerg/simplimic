@@ -150,6 +150,8 @@ def generate_chartitems():
 
     chartitems_df = pd.read_csv(os.path.join(DATADIR, 'D_ITEMS.csv'))
 
+    chartitems_df.set_index('ITEMID', inplace=True)
+
     models = []
     for itemid, r in chartitems_df.iterrows():
         m = CHARTITEM(
@@ -178,6 +180,7 @@ def generate_labitems():
     print('Generating labitems...')
 
     labitems_df = pd.read_csv(os.path.join(DATADIR, 'D_LABITEMS.csv'))
+    labitems_df.set_index('ITEMID', inplace=True)
 
     models = []
     for itemid, r in labitems_df.iterrows():
@@ -234,7 +237,7 @@ def generate_chartevents():
                     m = CHARTEVENTVALUE(
                         SUBJECT=p,
                         ADMISSION=a,
-                        icustay=i,
+                        ICUSTAY=i,
                         ITEM=itm,
                         CHARTTIME=r['CHARTTIME'],
                         STORETIME=r['STORETIME'],
@@ -311,12 +314,12 @@ def generate_diagnosis():
     GEnerate the diagnosis...
     :return:
     """
-    print('Generating prescriptions...')
+    print('Generating diagnoses...')
     # records = pd.read_csv(os.path.join(DATADIR, 'DIAGNOSES.csv'))
-    for records in pd.read_csv(os.path.join(DATADIR, 'DIAGNOSES.csv'), chunksize=100000):
+    for records in pd.read_csv(os.path.join(DATADIR, 'DIAGNOSES_ICD.csv'), chunksize=100000):
         for hadmid, records_per_hadm in records.groupby('HADM_ID'):
             a = ADMISSION.objects.get_or_create(HADM_ID=hadmid)[0]
-            p = SUBJECT.objects.get_or_create(SUBJECT_ID=records_per_hadm['SUBJECT_ID'].unique().values[0])[0]
+            p = SUBJECT.objects.get_or_create(SUBJECT_ID=records_per_hadm['SUBJECT_ID'].unique()[0])[0]
 
             models = []
             for _, r in records_per_hadm.iterrows():
@@ -400,10 +403,6 @@ def main():
     generate_chartevents()
     generate_labevents()
     generate_presriptions()
-
-    # TODO:
-    # generate diagnosis
-    # generate services
 
     print('DONE')
 
