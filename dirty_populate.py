@@ -245,7 +245,7 @@ def generate_chartevents():
                         CGID=r['CGID'],
                         VALUE=r['VALUE'],
                         VALUENUM=r['VALUENUM'],
-                        UNIT=r['VALUEUOM'],
+                        VALUEUOM=r['VALUEUOM'],
                         WARNING=r['WARNING'],
                         ERROR=r['ERROR'],
                         RESULTSTATUS=r['RESULTSTATUS'],
@@ -302,6 +302,7 @@ def generate_labevents():
                         CHARTTIME=r['CHARTTIME'],
                         VALUE=r['VALUE'],
                         VALUENUM=r['VALUENUM'],
+                        VALUEUOM=r['VALUEUOM'],
                         FLAG=r['FLAG']
                     )
                     models.append(m)

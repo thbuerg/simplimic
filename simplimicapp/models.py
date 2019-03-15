@@ -13,10 +13,10 @@ class SUBJECT(models.Model):
     # TODO:     - integerize static patients vars (GENDER, ETHNICITY)
     SUBJECT_ID = models.IntegerField(default=None, primary_key=True)
     GENDER = models.CharField(max_length=10)
-    DOB = models.CharField(default=None, max_length=20)
-    DOD = models.CharField(default=None, max_length=20)
-    DOD_HOSP = models.CharField(default=None, max_length=20)
-    DOD_SSN = models.CharField(default=None, max_length=20)   # ssn = stationary?
+    DOB = models.DateTimeField(default=None, max_length=20)
+    DOD = models.DateTimeField(default=None, max_length=20)
+    DOD_HOSP = models.DateTimeField(default=None, max_length=20)
+    DOD_SSN = models.DateTimeField(default=None, max_length=20)   # ssn = stationary?
     EXPIRE_FLAG = models.BooleanField(default=None)   # TODO: is there a default?
 
 
@@ -106,7 +106,7 @@ class CHARTEVENTVALUE(models.Model):
     CGID = models.CharField(default=None, max_length=10, null=True, blank=True)
     VALUE = models.CharField(default=None, max_length=10)
     VALUENUM = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
-    UNIT = models.CharField(max_length=10)
+    VALUEUOM = models.CharField(max_length=10, default=None, null=True, blank=True)  # TOOD check if float is safe here
     WARNING = models.CharField(default=None, max_length=25, null=True, blank=True)
     ERROR = models.CharField(default=None, max_length=25, null=True, blank=True)
     RESULTSTATUS = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
@@ -133,6 +133,7 @@ class LABEVENTVALUE(models.Model):
     CHARTTIME = models.DateTimeField(default=None, blank=True, null=True)
     VALUE = models.CharField(default=None, max_length=10, blank=True, null=True)
     VALUENUM = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
+    VALUEUOM = models.CharField(max_length=10, default=None, null=True, blank=True)  # TOOD check if float is safe here
     UNIT = models.CharField(max_length=10, null=True, blank=True)
     FLAG = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
 
@@ -191,7 +192,7 @@ class DIAGNOSIS(models.Model):
     # no ICU here
 
     # fields
-    SEQ_NUM = models.IntegerField(default=None, max_length=20, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
+    SEQ_NUM = models.FloatField(default=None, max_length=20, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
     ICD9_CODE = models.CharField(default=None, max_length=20, null=True, blank=True)
     ICD_CLASS = models.CharField(default=None, max_length=20, null=True, blank=True)
 

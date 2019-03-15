@@ -40,8 +40,8 @@ class Query(object):
         """ GEt a list of all stay IDs in the  database """
         stays = ICUSTAY.objects.filter(
             ADMISSION__ADMITTIME__range=(
-                django.db.models.F('SUBJECT__DOB' + timedelta(years=self.FLAGS.agerange[0])),
-                django.db.models.F('SUBJECT__DOB' + timedelta(years=self.FLAGS.agerange[1]))),
+                django.db.models.F('SUBJECT__DOB') + timedelta(days=365*self.FLAGS.agerange[0]),
+                django.db.models.F('SUBJECT__DOB') + timedelta(days=365*self.FLAGS.agerange[1])),
             ADMISSION__HAS_CHARTEVENTS_DATA=True,
             LOS__range=(self.FLAGS.losrange[0], self.FLAGS.losrange[1]),
             DBSOURCE__exact='metavision').values('ICUSTAY_ID', 'ADMISSION', 'SUBJECT')
@@ -74,6 +74,10 @@ class Query(object):
         """
         stay = ICUSTAY.objects.filter(ICUSTAY_ID=id_).values('INTIME', 'OUTTIME', 'ADMISSION', 'SUBJECT')
         meta_df = read_frame(stay)
+
+        # reindex:
+        meta_df = meta_df.reset_index().drop('index', axis=1)
+
         meta_df['INTIME'] = pd.to_datetime(meta_df['INTIME'])
         meta_df['OUTTIME'] = pd.to_datetime(meta_df['OUTTIME'])
 
@@ -81,19 +85,16 @@ class Query(object):
         admission = ADMISSION.objects.filter(HADM_ID=stay[0]['ADMISSION'])\
             .values('ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'HOSPITAL_EXPIRE_FLAG')
         admission_df = read_frame(admission)
+        admission_df = admission_df.reset_index().drop('index', axis=1)
 
         # subject
         subject = SUBJECT.objects.filter(SUBJECT_ID=stay[0]['SUBJECT'])\
             .values('GENDER', 'DOD_HOSP', 'EXPIRE_FLAG')
         subject_df = read_frame(subject)
+        subject_df = subject_df.reset_index().drop('index', axis=1)
 
         for df in [subject_df, admission_df]:
-            for c in df.columns:
-                meta_df[c] = df[c]
-                
-        meta_df['icustay'] = id
-
-        meta_df.fillna(np.nan, inplace=True)
+            meta_df[df.columns] = df
 
         for c in ['SUBJECT', 'ADMISSION']:
             meta_df.loc[0, c] = int(re.search(re.compile('(\d+)'), meta_df.loc[0, c]).group())
@@ -106,8 +107,7 @@ class Query(object):
             if n_stays.loc[0, 'ICUSTAY_ID'] != id_:
                 raise ResourceWarning()
 
-        meta_df['ICUSTAY'] = int(id_)
-
+        meta_df['icustay'] = int(id_)
         meta_df.fillna(np.nan, inplace=True)
 
         return meta_df
@@ -123,14 +123,15 @@ class Query(object):
             var_events = CHARTEVENTVALUE.objects.filter(
                 ICUSTAY=icustay_id,
                 ITEM__ITEMID__exact=item,
-                ITEM__DBSOURCE__exact='metavision').values('CHARTTIME', 'VALUE', 'UNIT')
+                ITEM__DBSOURCE__exact='metavision').values('CHARTTIME', 'VALUE', 'VALUEUOM')
                                                     # TODO: check what we want!!!
                                                     # ).values('ITEM__ITEMID', 'CHARTTIME', 'VALUE', 'UNIT')
             var_events = read_frame(var_events)
             # var_events['ITEMID'] = var_events['ITEM__ITEMID']
             # var_events.drop('ITEMID', inplace=True)
             var_events['VARIABLE'] = descriptor
-            var_events['ICUSTAY'] = icustay_id
+            var_events['VALUEUOM'].fillna('unknown', inplace=True)
+            var_events['icustay'] = icustay_id
             var_events.set_index('VARIABLE', inplace=True)
             events.append(var_events)
 
@@ -155,16 +156,18 @@ class Query(object):
         events = []
         for descriptor, item in self.labitems.items():
             var_events = LABEVENTVALUE.objects.filter(ADMISSION=admission_id,
+                                                      ITEM__ITEMID__exact=item,
                                                       CHARTTIME__gte=intime,
                                                       CHARTTIME__lte=outtime
-                                                      ).values('CHARTTIME', 'VALUE', 'UNIT')
+                                                      ).values('CHARTTIME', 'VALUE', 'VALUEUOM')
             # TODO: check what we want!!!
                                                       # ).values('ITEM__ITEMID', 'CHARTTIME', 'VALUE', 'UNIT')
             var_events = read_frame(var_events)
             # var_events['ITEMID'] = var_events['ITEM__ITEMID']
             # var_events.drop('ITEMID', inplace=True)
             var_events['VARIABLE'] = descriptor
-            var_events['ICUSTAY'] = icustay_id
+            var_events['icustay'] = icustay_id
+            var_events['VALUEUOM'].fillna('unknown', inplace=True)
             var_events.set_index('VARIABLE', inplace=True)
             events.append(var_events)
         events = pd.concat(events, axis=0)

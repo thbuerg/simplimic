@@ -17,6 +17,27 @@ OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
 # OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
 # global MIMIC_DIR
 
+
+def clean_patients():
+    """
+    "ROW_ID","SUBJECT_ID","GENDER","DOB","DOD","DOD_HOSP","DOD_SSN","EXPIRE_FLAG"
+    :return:
+    """
+    # 1. read in ADMISSIONS.csv
+    subjects = pd.read_csv(os.path.join(MIMIC_DIR, 'PATIENTS.csv'))
+
+    subjects.set_index('SUBJECT_ID', inplace=True)
+    for c in [
+        "DOB",
+        "DOD",
+        "DOD_HOSP",
+        "DOD_SSN",
+    ]:
+        subjects[c] = pd.to_datetime(subjects[c].fillna('1911-11-11 11:11:11'))
+
+    subjects.to_csv(os.path.join(OUT_DIR, 'PATIENTS.csv'))
+
+
 def clean_admissions():
     """
     Go over the Admissions.csv -> select the entries w/o an hadmID
@@ -257,7 +278,6 @@ def get_stays_csv():
 - get fn to check that there is a one to many mapping between HADM and ICUSTAY not vice versa
 - in case there is, get a fn to throw out the one with less information? (this would have to be based no the events files...)
 """
-
 def copy_raw_files():
     """
     Copy the raw files from the MIMIC_DIR to OUT_DIR:
@@ -265,8 +285,6 @@ def copy_raw_files():
     - Prescriptions.csv
     :return:
     """
-    copyfile(os.path.join(MIMIC_DIR, 'PATIENTS.csv'),
-             os.path.join(OUT_DIR, 'PATIENTS.csv'))
     copyfile(os.path.join(MIMIC_DIR, 'PRESCRIPTIONS.csv'),
              os.path.join(OUT_DIR, 'PRESCRIPTIONS.csv'))
     copyfile(os.path.join(MIMIC_DIR, 'D_ITEMS.csv'),
@@ -280,6 +298,7 @@ def main():
     if not os.path.exists(OUT_DIR):
         os.mkdir(OUT_DIR)
     copy_raw_files()
+    clean_patients()
     clean_diagnosis()
     clean_admissions()
     clean_icu_stays()
