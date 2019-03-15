@@ -191,7 +191,7 @@ class DIAGNOSIS(models.Model):
     # no ICU here
 
     # fields
-    SEQ_NUM = models.IntegerField(default=None, max_length=20, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
+    SEQ_NUM = models.FloatField(default=None, max_length=20, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
     ICD9_CODE = models.CharField(default=None, max_length=20, null=True, blank=True)
     ICD_CLASS = models.CharField(default=None, max_length=20, null=True, blank=True)
 

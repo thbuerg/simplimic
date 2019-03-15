@@ -11,10 +11,10 @@ import numpy as np
 from shutil import copyfile
 
 
-# MIMIC_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw'
-MIMIC_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo'
-OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
-# OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
+MIMIC_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw'
+# MIMIC_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo'
+# OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
+OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
 # global MIMIC_DIR
 
 def clean_admissions():
