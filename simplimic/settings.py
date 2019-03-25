@@ -77,7 +77,8 @@ WSGI_APPLICATION = 'simplimic.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3_RAW_v2'),
+        'NAME': os.path.join('/nfs/research1/birney/projects/ehr/mimic/SQLite', 'db.sqlite3_RAW'),
+        #'NAME': os.path.join('/nfs/research1/birney/projects/ehr/mimic/SQLite', 'db.sqlite3_RAW'),
     }
 }
 

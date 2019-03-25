@@ -212,7 +212,7 @@ def generate_chartevents():
     print('Generating chartevents...')
 
     fname = 'CHARTEVENTS.csv'
-    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=100000):
+    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=50000):
 
         print('Found %d records to generate from file: %s' % (records.shape[0], fname))
 
@@ -232,31 +232,51 @@ def generate_chartevents():
 
             models = []
 
-            for item, item_df in events_per_icustay.groupby(events_per_icustay.index):
+#             for item, item_df in events_per_icustay.groupby(events_per_icustay.index):
+#                 itm = CHARTITEM.objects.get(ITEMID=item)
+#                 for _, r in item_df.iterrows():
+#                     m = CHARTEVENTVALUE(
+#                         SUBJECT=p,
+#                         ADMISSION=a,
+#                         ICUSTAY=i,
+#                         ITEM=itm,
+#                         CHARTTIME=r['CHARTTIME'],
+#                         STORETIME=r['STORETIME'],
+#                         CGID=r['CGID'],
+#                         VALUE=r['VALUE'],
+#                         VALUENUM=r['VALUENUM'],
+#                         VALUEUOM=r['VALUEUOM'],
+#                         WARNING=r['WARNING'],
+#                         ERROR=r['ERROR'],
+#                         RESULTSTATUS=r['RESULTSTATUS'],
+#                         STOPPED=r['STOPPED'],
+#                     )
+#                     models.append(m)                    
+                    
+            for item, r in events_per_icustay.iterrows():
                 itm = CHARTITEM.objects.get(ITEMID=item)
-                for _, r in item_df.iterrows():
-                    m = CHARTEVENTVALUE(
-                        SUBJECT=p,
-                        ADMISSION=a,
-                        ICUSTAY=i,
-                        ITEM=itm,
-                        CHARTTIME=r['CHARTTIME'],
-                        STORETIME=r['STORETIME'],
-                        CGID=r['CGID'],
-                        VALUE=r['VALUE'],
-                        VALUENUM=r['VALUENUM'],
-                        VALUEUOM=r['VALUEUOM'],
-                        WARNING=r['WARNING'],
-                        ERROR=r['ERROR'],
-                        RESULTSTATUS=r['RESULTSTATUS'],
-                        STOPPED=r['STOPPED'],
-                    )
-                    models.append(m)
-            try:
-                CHARTEVENTVALUE.objects.bulk_create(models)
-            except TypeError:
-                events_per_icustay.to_csv(os.path.join(DATADIR, 'CHARTEVENTS_CRASH.csv'))
-                raise TypeError()
+                m = CHARTEVENTVALUE(
+                    SUBJECT=p,
+                    ADMISSION=a,
+                    ICUSTAY=i,
+                    ITEM=itm,
+                    CHARTTIME=r['CHARTTIME'],
+                    STORETIME=r['STORETIME'],
+                    CGID=r['CGID'],
+                    VALUE=r['VALUE'],
+                    VALUENUM=r['VALUENUM'],
+                    VALUEUOM=r['VALUEUOM'],
+                    WARNING=r['WARNING'],
+                    ERROR=r['ERROR'],
+                    RESULTSTATUS=r['RESULTSTATUS'],
+                    STOPPED=r['STOPPED'],
+                )
+                models.append(m)
+        try:
+            CHARTEVENTVALUE.objects.bulk_create(models)
+        except TypeError:
+            events_per_icustay.to_csv(os.path.join(DATADIR, 'CHARTEVENTS_CRASH.csv'))
+            raise TypeError()
                                         
     print('DONE')
 

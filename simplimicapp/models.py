@@ -104,7 +104,7 @@ class CHARTEVENTVALUE(models.Model):
     CHARTTIME = models.DateTimeField(default=None) #, max_length=20)
     STORETIME = models.DateTimeField(default=None, null=True, blank=True) #, max_length=20, null=True, blank=True)
     CGID = models.CharField(default=None, max_length=10, null=True, blank=True)
-    VALUE = models.CharField(default=None, max_length=50)
+    VALUE = models.CharField(default=None, max_length=210)
     VALUENUM = models.CharField(max_length=25, default=None, null=True, blank=True)  # TOOD check if float is safe here
     VALUEUOM = models.CharField(max_length=50, default=None, null=True, blank=True)  # TOOD check if float is safe here
     WARNING = models.CharField(default=None, max_length=25, null=True, blank=True)

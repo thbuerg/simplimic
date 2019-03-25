@@ -4,10 +4,11 @@
 ### INIT SCRIPT  FOR SIMPLIMIC APP DB:
 
 # conda activate py37 
-
+MIMIC="/nfs/research1/birney/projects/ehr/mimic/SQLite"
 # 1. clear db
-touch db.sqlite3_RAW_v2
-rm db.sqlite3_RAW_v2
+touch $MIMIC/db.sqlite3_RAW
+echo $MIMIC/db.sqlite3_RAW
+rm $MIMIC/db.sqlite3_RAW
 
 # 2. clear migrations
 touch simplimicapp/migrations/000xinitial
