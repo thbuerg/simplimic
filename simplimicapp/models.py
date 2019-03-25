@@ -49,17 +49,17 @@ class ADMISSION(models.Model):
     DISCHTIME = models.DateTimeField(null=True, blank=True)
     # death_time = models.CharField(default=None, max_length=20, null=True, blank=True)
     DEATHTIME = models.DateTimeField(default=None, null=True, blank=True)
-    ADMISSION_TYPE = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=2)
+    ADMISSION_TYPE = models.CharField(choices=ADMISSION_CHOICES, default=None, max_length=40)
     ADMISSION_LOCATION = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
     DISCHARGE_LOCATION = models.CharField(default=None, max_length=40)  # TODO: get choices for this?
     INSURANCE = models.CharField(default=None, max_length=15)  # TODO: get choices for this?
     LANGUAGE = models.CharField(default=None, max_length=10, blank=True, null=True)  # may be `nan` (still str)
-    RELIGION = models.CharField(default=None, max_length=10, blank=True, null=True)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
-    MARITAL_STATUS = models.CharField(default=None, max_length=10, blank=True, null=True)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
-    ETHNICITY = models.CharField(default=None, max_length=50)
+    RELIGION = models.CharField(default=None, max_length=30, blank=True, null=True)  # Fun Experiment proposal: proof indifference between religions by demonstrating statistical insignificance of religion choice as model covariate (after stripping outgroups. Sorry my `7TH DAY ADVENTIST`s)
+    MARITAL_STATUS = models.CharField(default=None, max_length=50, blank=True, null=True)  # -> GREAT EXPERIMENTS IMAGINABLE HERE....
+    ETHNICITY = models.CharField(default=None, max_length=150)
     EDREGTIME = models.DateTimeField(default=None, null=True, blank=True)
     EDOUTTIME = models.DateTimeField(default=None, null=True, blank=True)
-    DIAGNOSIS = models.CharField(default=None, max_length=100)  # some of them are really detailed in description -> definitively better to use codes
+    DIAGNOSIS = models.CharField(default=None, max_length=300)  # some of them are really detailed in description -> definitively better to use codes
     HOSPITAL_EXPIRE_FLAG = models.BooleanField(default=None) # TODO find out what this is
     HAS_CHARTEVENTS_DATA = models.BooleanField(default=None)
 
@@ -104,9 +104,9 @@ class CHARTEVENTVALUE(models.Model):
     CHARTTIME = models.DateTimeField(default=None) #, max_length=20)
     STORETIME = models.DateTimeField(default=None, null=True, blank=True) #, max_length=20, null=True, blank=True)
     CGID = models.CharField(default=None, max_length=10, null=True, blank=True)
-    VALUE = models.CharField(default=None, max_length=10)
-    VALUENUM = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
-    VALUEUOM = models.CharField(max_length=10, default=None, null=True, blank=True)  # TOOD check if float is safe here
+    VALUE = models.CharField(default=None, max_length=50)
+    VALUENUM = models.CharField(max_length=25, default=None, null=True, blank=True)  # TOOD check if float is safe here
+    VALUEUOM = models.CharField(max_length=50, default=None, null=True, blank=True)  # TOOD check if float is safe here
     WARNING = models.CharField(default=None, max_length=25, null=True, blank=True)
     ERROR = models.CharField(default=None, max_length=25, null=True, blank=True)
     RESULTSTATUS = models.CharField(default=None, max_length=50, null=True, blank=True)  # contained only nans the top 1 Mio rows
@@ -192,7 +192,7 @@ class DIAGNOSIS(models.Model):
     # no ICU here
 
     # fields
-    SEQ_NUM = models.FloatField(default=None, max_length=20, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
+    SEQ_NUM = models.CharField(default=None, max_length=20, null=True, blank=True)     # e.g. the rank of the diagnosis in the end of the admission
     ICD9_CODE = models.CharField(default=None, max_length=20, null=True, blank=True)
     ICD_CLASS = models.CharField(default=None, max_length=20, null=True, blank=True)
 
