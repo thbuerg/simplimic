@@ -11,10 +11,10 @@ import numpy as np
 from shutil import copyfile
 
 
-# MIMIC_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw'
-MIMIC_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo'
-OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
-# OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
+MIMIC_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw'
+#MIMIC_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo'
+#OUT_DIR = '/Users/buergelt/projects/thesis/data/mimic_demo_clean'
+OUT_DIR = '/nfs/research1/birney/projects/ehr/mimic/mimic_raw_clean'
 # global MIMIC_DIR
 
 
@@ -232,10 +232,8 @@ def clean_events(kind='CHART'):
         if kind == 'CHART':
             events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'].fillna('1911-11-11 11:11:11'))
         events_to_edit.drop(droplist, inplace=True)
-        events_to_edit['CHARTTIME'] = pd.to_datetime(events_to_edit['CHARTTIME'])  #.fillna('1911-11-11 11:11:11'))
-        if kind == 'CHART':
-            events_to_edit['STORETIME'] = pd.to_datetime(events_to_edit['STORETIME'].fillna('1911-11-11 11:11:11'))
         events_to_edit = events_to_edit.loc[events_to_edit['CHARTTIME'].notnull()]
+
         with open(os.path.join(OUT_DIR, '%sEVENTS.csv' % kind), 'a') as fobj:
             events_to_edit.to_csv(fobj, mode='a', header=fobj.tell() == 0)
 

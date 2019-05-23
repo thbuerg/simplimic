@@ -3,6 +3,7 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "simplimic.settings"
 import django
 django.setup()
 import pandas as pd
+import numpy as np
 from simplimicapp.models import *
 
 # some dirty FLAGS:
@@ -108,36 +109,39 @@ def generate_icustays():
     :return:
     """
     print('Generating ICUstays...')
-    stays_df = pd.read_csv(os.path.join(DATADIR, 'ICUSTAYS.csv'))
-    stays_df.set_index('ICUSTAY_ID', inplace=True)
+    #stays_df = pd.read_csv(os.path.join(DATADIR, 'ICUSTAYS.csv'))
+    #stays_df.set_index('ICUSTAY_ID', inplace=True)
+    
+    for records in pd.read_csv(os.path.join(DATADIR, 'ICUSTAYS.csv'), chunksize=100000):
 
-    # generate an django entry for each row:
-    for admID, stays_per_adm_df in stays_df.groupby(stays_df['HADM_ID']):
-        pids = stays_per_adm_df['SUBJECT_ID'].unique()
-        assert pids.shape[0] == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
+        stays_df = records.set_index('ICUSTAY_ID')
+        # generate an django entry for each row:
+        for admID, stays_per_adm_df in stays_df.groupby(stays_df['HADM_ID']):
+            pids = stays_per_adm_df['SUBJECT_ID'].unique()
+            assert pids.shape[0] == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
 
-        p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
-        a = ADMISSION.objects.get_or_create(HADM_ID=admID)[0]
+            p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
+            a = ADMISSION.objects.get_or_create(HADM_ID=admID)[0]
 
-        models = []
+            models = []
 
-        for i, r in stays_per_adm_df.iterrows():
-            m = ICUSTAY(
-                SUBJECT=p,
-                ADMISSION=a,
-                ICUSTAY_ID=float(i),  # float('10.0') -> int() works
-                DBSOURCE=r['DBSOURCE'],
-                FIRST_CAREUNIT= r['FIRST_CAREUNIT'],
-                LAST_CAREUNIT=r['LAST_CAREUNIT'],
-                FIRST_WARDID=r['FIRST_WARDID'],
-                LAST_WARDID=r['LAST_WARDID'],
-                INTIME=r['INTIME'],
-                OUTTIME=r['OUTTIME'],
-                LOS=r['LOS']
-            )
-            models.append(m)
+            for i, r in stays_per_adm_df.iterrows():
+                m = ICUSTAY(
+                    SUBJECT=p,
+                    ADMISSION=a,
+                    ICUSTAY_ID=float(i),  # float('10.0') -> int() works
+                    DBSOURCE=r['DBSOURCE'],
+                    FIRST_CAREUNIT= r['FIRST_CAREUNIT'],
+                    LAST_CAREUNIT=r['LAST_CAREUNIT'],
+                    FIRST_WARDID=r['FIRST_WARDID'],
+                    LAST_WARDID=r['LAST_WARDID'],
+                    INTIME=r['INTIME'],
+                    OUTTIME=r['OUTTIME'],
+                    LOS=r['LOS']
+                )
+                models.append(m)
 
-        ICUSTAY.objects.bulk_create(models)
+            ICUSTAY.objects.bulk_create(models)
 
     print('DONE')
 
@@ -212,11 +216,12 @@ def generate_chartevents():
     print('Generating chartevents...')
 
     fname = 'CHARTEVENTS.csv'
-    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=100000):
+    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=500000):
 
         print('Found %d records to generate from file: %s' % (records.shape[0], fname))
 
         for icustay_id, events_per_icustay in records.groupby('ICUSTAY_ID'):
+            models = []
             # enforce many to one:
             pids = events_per_icustay['SUBJECT_ID'].unique()
             assert pids.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Patients.'
@@ -229,8 +234,6 @@ def generate_chartevents():
 
             # loop over all descriptors and instatiate them all:
             events_per_icustay.set_index('ITEMID', inplace=True)
-
-            models = []
 
             for item, item_df in events_per_icustay.groupby(events_per_icustay.index):
                 itm = CHARTITEM.objects.get(ITEMID=item)
@@ -251,14 +254,15 @@ def generate_chartevents():
                         RESULTSTATUS=r['RESULTSTATUS'],
                         STOPPED=r['STOPPED'],
                     )
-                    models.append(m)
+                    models.append(m)                    
+                   
             try:
                 CHARTEVENTVALUE.objects.bulk_create(models)
             except TypeError:
                 events_per_icustay.to_csv(os.path.join(DATADIR, 'CHARTEVENTS_CRASH.csv'))
                 raise TypeError()
-                                        
-    print('DONE')
+
+        print('DONE')
 
     
 def generate_labevents():
@@ -276,6 +280,10 @@ def generate_labevents():
 
     fname = 'LABEVENTS.csv'
     for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=100000):
+        records = records.drop('Unnamed: 0', axis=1)
+        records = records.dropna(subset=['HADM_ID', 'ITEMID'], axis=0)
+        print(records.shape)
+        print(records.head())
 
         print('Found %d records to generate from file: %s' % (records.shape[0], fname))
 
@@ -283,9 +291,14 @@ def generate_labevents():
             # enforce many to one:
             pids = events_per_hadm['SUBJECT_ID'].unique()
             assert pids.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Patients.'
-
-            a = ADMISSION.objects.get_or_create(HADM_ID=adm_id)[0]
-            p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
+            
+            try:
+                a = ADMISSION.objects.get_or_create(HADM_ID=adm_id)[0]
+                p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
+            except:
+                print(adm_id)
+                print(pids)
+                raise NotImplementedError()
 
             # loop over all descriptors and instatiate them all:
             events_per_hadm.set_index('ITEMID', inplace=True)
@@ -301,12 +314,22 @@ def generate_labevents():
                         ITEM=itm,
                         CHARTTIME=r['CHARTTIME'],
                         VALUE=r['VALUE'],
-                        VALUENUM=r['VALUENUM'],
+                        VALUENUM=float(r['VALUENUM']),
                         VALUEUOM=r['VALUEUOM'],
                         FLAG=r['FLAG']
                     )
-                    models.append(m)
-            LABEVENTVALUE.objects.bulk_create(models)
+                    try:
+                        m.save()
+                    except:
+                        print(a.__dict__)
+                        print(p.__dict__)
+                        print(itm.__dict__)
+                        print(m.__dict__)
+                        print(LABEVENTVALUE.objects.all())
+                        raise NotImplementedError()
+            raise NotImplementedError()
+                    #models.append(m)
+            #LABEVENTVALUE.objects.bulk_create(models)
 
         print('DONE')
 
@@ -347,6 +370,11 @@ def generate_presriptions():
     print('Generating prescriptions...')
 
     records = pd.read_csv(os.path.join(DATADIR, 'PRESCRIPTIONS.csv'))
+    print(records.shape)
+    records['GSN'] = records['GSN'].apply(dirty_to_nan)
+    records['NDC'] = records['NDC'].apply(dirty_to_nan)
+    records = records.dropna(subset=['GSN', 'NDC'], axis=0)
+    print(records.shape)
 
     print('Found %d records to generate from file: %s' % (records.shape[0], os.path.join(DATADIR,  'PRESCRIPTIONS.csv')))
 
@@ -354,12 +382,15 @@ def generate_presriptions():
         pids = drugs_per_icustay['SUBJECT_ID'].unique()
         assert pids.size == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
         adms = drugs_per_icustay['HADM_ID'].unique()
-        assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions.'
+        #print(adms)
+        #assert adms.shape[0] == 1, 'ERROR: Same ICUSTAY ID assigned to multiple Admissions. {}'.format(adms)
+        if adms.shape[0] > 1:
+            continue
 
         a = ADMISSION.objects.get_or_create(HADM_ID=adms[0])[0]
         p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
         i = ICUSTAY.objects.get_or_create(ICUSTAY_ID=icustay_id)[0]
-
+        
         models = []
         for idx, r in drugs_per_icustay.iterrows():
             m = PRESCRIPTION(
@@ -396,17 +427,29 @@ def main():
     # go
     print('Starting population...')
 
-    generate_patients()
-    generate_admissions()
-    generate_icustays()
-    generate_chartitems()
-    generate_labitems()
-    generate_diagnosis()
-    generate_chartevents()
+    #generate_patients()
+    #generate_admissions()
+    #generate_icustays()
+
+    #generate_presriptions()
+    #generate_chartitems()
+    #generate_labitems()
+    #generate_diagnosis()
     generate_labevents()
-    generate_presriptions()
+    #generate_chartevents()
 
     print('DONE')
+    
+    
+def dirty_to_nan(v):
+    if isinstance(v, float):
+        return v
+    if ' ' in v:
+        return np.nan
+    try:
+        return float(v)
+    except:
+        return np.nan
 
 
 if __name__ == '__main__':
