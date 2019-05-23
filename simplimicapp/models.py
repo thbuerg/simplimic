@@ -131,10 +131,10 @@ class LABEVENTVALUE(models.Model):
 
     # Fields:
     CHARTTIME = models.DateTimeField(default=None, blank=True, null=True)
-    VALUE = models.CharField(default=None, max_length=10, blank=True, null=True)
+    VALUE = models.CharField(default=None, max_length=50, blank=True, null=True)
     VALUENUM = models.FloatField(default=None, null=True, blank=True)  # TOOD check if float is safe here
-    VALUEUOM = models.CharField(max_length=10, default=None, null=True, blank=True)  # TOOD check if float is safe here
-    UNIT = models.CharField(max_length=10, null=True, blank=True)
+    VALUEUOM = models.CharField(max_length=50, default=None, null=True, blank=True)  # TOOD check if float is safe here
+    UNIT = models.CharField(max_length=50, null=True, blank=True)
     FLAG = models.CharField(default=None, max_length=8, null=True, blank=True) # abnormal or normal for lab values
 
 

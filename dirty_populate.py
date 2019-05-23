@@ -216,9 +216,11 @@ def generate_chartevents():
     print('Generating chartevents...')
 
     fname = 'CHARTEVENTS.csv'
-    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=500000):
+
+    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=1000000):
 
         print('Found %d records to generate from file: %s' % (records.shape[0], fname))
+        models = []
 
         for icustay_id, events_per_icustay in records.groupby('ICUSTAY_ID'):
             models = []
@@ -256,13 +258,13 @@ def generate_chartevents():
                     )
                     models.append(m)                    
                    
-            try:
-                CHARTEVENTVALUE.objects.bulk_create(models)
-            except TypeError:
-                events_per_icustay.to_csv(os.path.join(DATADIR, 'CHARTEVENTS_CRASH.csv'))
-                raise TypeError()
+        try:
+            CHARTEVENTVALUE.objects.bulk_create(models)
+        except TypeError:
+            events_per_icustay.to_csv(os.path.join(DATADIR, 'CHARTEVENTS_CRASH.csv'))
+            raise TypeError()
 
-        print('DONE')
+    print('DONE')
 
     
 def generate_labevents():
@@ -279,11 +281,17 @@ def generate_labevents():
     print('Generating labevents...')
 
     fname = 'LABEVENTS.csv'
+<<<<<<< HEAD
+    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=100000, index_col=False):
+        if 'Unnamed: 0' in records.columns:
+            records.drop('Unnamed: 0', axis=1, inplace=True)
+=======
     for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=100000):
         records = records.drop('Unnamed: 0', axis=1)
         records = records.dropna(subset=['HADM_ID', 'ITEMID'], axis=0)
         print(records.shape)
         print(records.head())
+>>>>>>> 70442c4b2eacb5df917d59fff6ce0ace11111d23
 
         print('Found %d records to generate from file: %s' % (records.shape[0], fname))
 
@@ -305,6 +313,7 @@ def generate_labevents():
 
             models = []
 
+            print(events_per_hadm.head())
             for item, item_df in events_per_hadm.groupby(events_per_hadm.index):
                 itm = LABITEM.objects.get(ITEMID=item)
                 for _, r in item_df.iterrows():
