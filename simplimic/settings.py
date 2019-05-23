@@ -77,11 +77,25 @@ WSGI_APPLICATION = 'simplimic.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join('/nfs/research1/birney/projects/ehr/mimic/SQLite', 'db.sqlite3_RAW'),
-        #'NAME': os.path.join('/nfs/research1/birney/projects/ehr/mimic/SQLite', 'db.sqlite3_RAW'),
+        'NAME': os.path.join('/nfs/research1/birney/projects/ehr/mimic/SQLite', 'db.sqlite3_TEST2'),
     }
 }
 
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql', 
+#         'CONN_MAX_AGE': 3600,
+#         'NAME': 'simplimic_test',
+#         'USER': 'admin',
+#         'PASSWORD': 'addenbrookes_elders',
+#         'HOST': 'mysql-epic1-dev',   # Or an IP Address that your DB is hosted on
+#         'PORT': '4629',
+#         'OPTIONS': {                                                                           
+#             'isolation_level': "repeatable read",                                                       
+#         },                                                                                            
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators

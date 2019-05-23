@@ -24,19 +24,19 @@ class Query(object):
     """
     Class performing the queries from the database.
     """
-    def __init__(self, FLAGS):
+    def __init__(self, FLAGS, warm_start_id=None):
         super(Query, self).__init__()
         self.FLAGS = FLAGS  # namespace object to hold the path to settings py and other stuff
 
         with open(self.FLAGS.chartitems, 'r') as infobj:
-            self.chartitems = json.load(infobj)
+            self.chartitems = pd.read_csv(infobj)
         with open(self.FLAGS.labitems, 'r') as infobj:
-            self.labitems = json.load(infobj)
+            self.labitems = pd.read_csv(infobj)
 
         # get list of all stays:
-        self.stays_map = self._get_stays_map()
+        self.stays_map = self._get_stays_map(warm_start_id)
 
-    def _get_stays_map(self):
+    def _get_stays_map(self, warm_start_id=None):
         """ GEt a list of all stay IDs in the  database """
         stays = ICUSTAY.objects.filter(
             ADMISSION__ADMITTIME__range=(
@@ -49,7 +49,14 @@ class Query(object):
         # for each stay check if there are chartevents from metavision and if not, drop the stay\
         stays = pd.concat([pd.Series(s).to_frame().T for s in stays])
         stays = stays.sort_values('ICUSTAY_ID')
+        
+        if warm_start_id is not None:
+            stays.set_index('ICUSTAY_ID', inplace=True)
+            drop = stays.index.values <= warm_start_id
+            stays.drop(stays.loc[drop].index.values, inplace=True)
+            stays.reset_index(inplace=True)
 
+            
         return stays
 
     def query_stay(self, id):
@@ -83,13 +90,13 @@ class Query(object):
 
         # admission
         admission = ADMISSION.objects.filter(HADM_ID=stay[0]['ADMISSION'])\
-            .values('ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'HOSPITAL_EXPIRE_FLAG')
+            .values('ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'HOSPITAL_EXPIRE_FLAG', 'DISCHARGE_LOCATION')
         admission_df = read_frame(admission)
         admission_df = admission_df.reset_index().drop('index', axis=1)
 
         # subject
         subject = SUBJECT.objects.filter(SUBJECT_ID=stay[0]['SUBJECT'])\
-            .values('GENDER', 'DOD_HOSP', 'EXPIRE_FLAG')
+            .values('GENDER', 'DOD_HOSP', 'EXPIRE_FLAG', 'DOD')
         subject_df = read_frame(subject)
         subject_df = subject_df.reset_index().drop('index', axis=1)
 
@@ -119,7 +126,9 @@ class Query(object):
         """
         # read in the items.json and get the terms we want
         events = []
-        for descriptor, item in self.chartitems.items():
+        for i, r in self.chartitems.iterrows():
+            descriptor = r['descriptor'] 
+            item = r['item'] 
             var_events = CHARTEVENTVALUE.objects.filter(
                 ICUSTAY=icustay_id,
                 ITEM__ITEMID__exact=item,
@@ -154,7 +163,9 @@ class Query(object):
 
         # now query the relevant lab events:
         events = []
-        for descriptor, item in self.labitems.items():
+        for i, r in self.labitems.iterrows():
+            descriptor = r['descriptor'] 
+            item = r['item']
             var_events = LABEVENTVALUE.objects.filter(ADMISSION=admission_id,
                                                       ITEM__ITEMID__exact=item,
                                                       CHARTTIME__gte=intime,

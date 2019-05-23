@@ -108,36 +108,39 @@ def generate_icustays():
     :return:
     """
     print('Generating ICUstays...')
-    stays_df = pd.read_csv(os.path.join(DATADIR, 'ICUSTAYS.csv'))
-    stays_df.set_index('ICUSTAY_ID', inplace=True)
+    #stays_df = pd.read_csv(os.path.join(DATADIR, 'ICUSTAYS.csv'))
+    #stays_df.set_index('ICUSTAY_ID', inplace=True)
+    
+    for records in pd.read_csv(os.path.join(DATADIR, 'ICUSTAYS.csv'), chunksize=100000):
 
-    # generate an django entry for each row:
-    for admID, stays_per_adm_df in stays_df.groupby(stays_df['HADM_ID']):
-        pids = stays_per_adm_df['SUBJECT_ID'].unique()
-        assert pids.shape[0] == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
+        stays_df = records.set_index('ICUSTAY_ID')
+        # generate an django entry for each row:
+        for admID, stays_per_adm_df in stays_df.groupby(stays_df['HADM_ID']):
+            pids = stays_per_adm_df['SUBJECT_ID'].unique()
+            assert pids.shape[0] == 1, 'ERROR: Same Admission ID assigned to multiple Patients.'
 
-        p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
-        a = ADMISSION.objects.get_or_create(HADM_ID=admID)[0]
+            p = SUBJECT.objects.get_or_create(SUBJECT_ID=pids[0])[0]
+            a = ADMISSION.objects.get_or_create(HADM_ID=admID)[0]
 
-        models = []
+            models = []
 
-        for i, r in stays_per_adm_df.iterrows():
-            m = ICUSTAY(
-                SUBJECT=p,
-                ADMISSION=a,
-                ICUSTAY_ID=float(i),  # float('10.0') -> int() works
-                DBSOURCE=r['DBSOURCE'],
-                FIRST_CAREUNIT= r['FIRST_CAREUNIT'],
-                LAST_CAREUNIT=r['LAST_CAREUNIT'],
-                FIRST_WARDID=r['FIRST_WARDID'],
-                LAST_WARDID=r['LAST_WARDID'],
-                INTIME=r['INTIME'],
-                OUTTIME=r['OUTTIME'],
-                LOS=r['LOS']
-            )
-            models.append(m)
+            for i, r in stays_per_adm_df.iterrows():
+                m = ICUSTAY(
+                    SUBJECT=p,
+                    ADMISSION=a,
+                    ICUSTAY_ID=float(i),  # float('10.0') -> int() works
+                    DBSOURCE=r['DBSOURCE'],
+                    FIRST_CAREUNIT= r['FIRST_CAREUNIT'],
+                    LAST_CAREUNIT=r['LAST_CAREUNIT'],
+                    FIRST_WARDID=r['FIRST_WARDID'],
+                    LAST_WARDID=r['LAST_WARDID'],
+                    INTIME=r['INTIME'],
+                    OUTTIME=r['OUTTIME'],
+                    LOS=r['LOS']
+                )
+                models.append(m)
 
-        ICUSTAY.objects.bulk_create(models)
+            ICUSTAY.objects.bulk_create(models)
 
     print('DONE')
 
@@ -212,9 +215,10 @@ def generate_chartevents():
     print('Generating chartevents...')
 
     fname = 'CHARTEVENTS.csv'
-    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=50000):
+    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=1000000):
 
         print('Found %d records to generate from file: %s' % (records.shape[0], fname))
+        models = []
 
         for icustay_id, events_per_icustay in records.groupby('ICUSTAY_ID'):
             # enforce many to one:
@@ -230,55 +234,34 @@ def generate_chartevents():
             # loop over all descriptors and instatiate them all:
             events_per_icustay.set_index('ITEMID', inplace=True)
 
-            models = []
-
-#             for item, item_df in events_per_icustay.groupby(events_per_icustay.index):
-#                 itm = CHARTITEM.objects.get(ITEMID=item)
-#                 for _, r in item_df.iterrows():
-#                     m = CHARTEVENTVALUE(
-#                         SUBJECT=p,
-#                         ADMISSION=a,
-#                         ICUSTAY=i,
-#                         ITEM=itm,
-#                         CHARTTIME=r['CHARTTIME'],
-#                         STORETIME=r['STORETIME'],
-#                         CGID=r['CGID'],
-#                         VALUE=r['VALUE'],
-#                         VALUENUM=r['VALUENUM'],
-#                         VALUEUOM=r['VALUEUOM'],
-#                         WARNING=r['WARNING'],
-#                         ERROR=r['ERROR'],
-#                         RESULTSTATUS=r['RESULTSTATUS'],
-#                         STOPPED=r['STOPPED'],
-#                     )
-#                     models.append(m)                    
-                    
-            for item, r in events_per_icustay.iterrows():
+            for item, item_df in events_per_icustay.groupby(events_per_icustay.index):
                 itm = CHARTITEM.objects.get(ITEMID=item)
-                m = CHARTEVENTVALUE(
-                    SUBJECT=p,
-                    ADMISSION=a,
-                    ICUSTAY=i,
-                    ITEM=itm,
-                    CHARTTIME=r['CHARTTIME'],
-                    STORETIME=r['STORETIME'],
-                    CGID=r['CGID'],
-                    VALUE=r['VALUE'],
-                    VALUENUM=r['VALUENUM'],
-                    VALUEUOM=r['VALUEUOM'],
-                    WARNING=r['WARNING'],
-                    ERROR=r['ERROR'],
-                    RESULTSTATUS=r['RESULTSTATUS'],
-                    STOPPED=r['STOPPED'],
-                )
-                models.append(m)
+                for _, r in item_df.iterrows():
+                    m = CHARTEVENTVALUE(
+                        SUBJECT=p,
+                        ADMISSION=a,
+                        ICUSTAY=i,
+                        ITEM=itm,
+                        CHARTTIME=r['CHARTTIME'],
+                        STORETIME=r['STORETIME'],
+                        CGID=r['CGID'],
+                        VALUE=r['VALUE'],
+                        VALUENUM=r['VALUENUM'],
+                        VALUEUOM=r['VALUEUOM'],
+                        WARNING=r['WARNING'],
+                        ERROR=r['ERROR'],
+                        RESULTSTATUS=r['RESULTSTATUS'],
+                        STOPPED=r['STOPPED'],
+                    )
+                    models.append(m)                    
+                   
         try:
             CHARTEVENTVALUE.objects.bulk_create(models)
         except TypeError:
             events_per_icustay.to_csv(os.path.join(DATADIR, 'CHARTEVENTS_CRASH.csv'))
             raise TypeError()
-                                        
-    print('DONE')
+
+        print('DONE')
 
     
 def generate_labevents():
@@ -295,7 +278,9 @@ def generate_labevents():
     print('Generating labevents...')
 
     fname = 'LABEVENTS.csv'
-    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=100000):
+    for records in pd.read_csv(os.path.join(DATADIR, fname), chunksize=100000, index_col=False):
+        if 'Unnamed: 0' in records.columns:
+            records.drop('Unnamed: 0', axis=1, inplace=True)
 
         print('Found %d records to generate from file: %s' % (records.shape[0], fname))
 
@@ -312,6 +297,7 @@ def generate_labevents():
 
             models = []
 
+            print(events_per_hadm.head())
             for item, item_df in events_per_hadm.groupby(events_per_hadm.index):
                 itm = LABITEM.objects.get(ITEMID=item)
                 for _, r in item_df.iterrows():
