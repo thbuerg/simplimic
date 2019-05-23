@@ -78,18 +78,27 @@ class Query(object):
         # reindex:
         meta_df = meta_df.reset_index().drop('index', axis=1)
 
-        meta_df['INTIME'] = pd.to_datetime(meta_df['INTIME'])
-        meta_df['OUTTIME'] = pd.to_datetime(meta_df['OUTTIME'])
-
         # admission
         admission = ADMISSION.objects.filter(HADM_ID=stay[0]['ADMISSION'])\
-            .values('ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'HOSPITAL_EXPIRE_FLAG')
+            .values('ADMITTIME',
+                    'DISCHTIME',
+                    'DEATHTIME',  # time of death recorded in hospital, if it was NaT we set it to '1911-11-11 11:11:11'
+                    'HOSPITAL_EXPIRE_FLAG',  # binary FLAG whether the patient died during the admission
+                    'ADMISSION_TYPE',
+                    'ADMISSION_LOCATION',
+                    'DIAGNOSIS',
+                    )
         admission_df = read_frame(admission)
         admission_df = admission_df.reset_index().drop('index', axis=1)
 
         # subject
         subject = SUBJECT.objects.filter(SUBJECT_ID=stay[0]['SUBJECT'])\
-            .values('GENDER', 'DOD_HOSP', 'EXPIRE_FLAG')
+            .values('GENDER',
+                    'DOB',  # to calculate the age
+                    'DOD_HOSP',  # date of death as recorded in hospital
+                    'DOD',  # date of death, not necessarily in hosp. matched with Social security Nr.
+                    'EXPIRE_FLAG', # wheter patient died or not
+                    )
         subject_df = read_frame(subject)
         subject_df = subject_df.reset_index().drop('index', axis=1)
 
@@ -105,9 +114,13 @@ class Query(object):
         if n_stays.shape[0] > 1:
             # only keep the first stay:
             if n_stays.loc[0, 'ICUSTAY_ID'] != id_:
+                print('not first stay')
                 raise ResourceWarning()
 
         meta_df['icustay'] = int(id_)
+
+        for c in ['INTIME', 'OUTTIME', 'ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'DOD', 'DOD_HOSP', 'DOB']:
+            meta_df[c] = pd.to_datetime(meta_df[c])
         meta_df.fillna(np.nan, inplace=True)
 
         return meta_df
@@ -124,8 +137,10 @@ class Query(object):
                 ICUSTAY=icustay_id,
                 ITEM__ITEMID__exact=item,
                 ITEM__DBSOURCE__exact='metavision').values('CHARTTIME', 'VALUE', 'VALUEUOM')
+                # ).values('CHARTTIME', 'VALUE', 'VALUEUOM')
                                                     # TODO: check what we want!!!
                                                     # ).values('ITEM__ITEMID', 'CHARTTIME', 'VALUE', 'UNIT')
+            # var_events=CHARTEVENTVALUE.objects.all().values('CHARTTIME', 'VALUE', 'VALUEUOM')
             var_events = read_frame(var_events)
             # var_events['ITEMID'] = var_events['ITEM__ITEMID']
             # var_events.drop('ITEMID', inplace=True)

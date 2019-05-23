@@ -20,5 +20,6 @@ python manage.py migrate --run-syncdb
 
 # populate:
 python dirty_populate.py $1
+#python dirty_populate_FAST.py $1
 
 echo DONE
