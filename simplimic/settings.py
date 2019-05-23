@@ -73,15 +73,12 @@ WSGI_APPLICATION = 'simplimic.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join('/nfs/research1/birney/projects/ehr/mimic/SQLite', 'db.sqlite3_TEST2'),
-    }
+DATABASES = { 
+    'default': { 
+    'ENGINE': 'django.db.backends.sqlite3', 
+    'NAME': os.path.join('/nfs/research1/birney/projects/ehr/mimic/SQLite', 'db.sqlite3_TEST2'), 
+                     }
 }
-
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql', 

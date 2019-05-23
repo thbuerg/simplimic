@@ -217,16 +217,16 @@ class PRESCRIPTION(models.Model):
     # fields
     STARTDATE = models.CharField(default=None, max_length=20, null=True)
     ENDDATE = models.CharField(default=None, max_length=20, null=True)
-    DRUG_TYPE = models.CharField(choices=DRUG_TYPE_CHOICES, default=None, max_length=1, null=True)
-    DRUG = models.CharField(default=None, max_length=25, null=True)#, primary_key=True)   # TODO: check  if we want primary key here
-    DRUG_NAME_POE = models.CharField(default=None, max_length=25, null=True)
-    DRUG_NAME_GENERIC = models.CharField(default=None, max_length=25, null=True)
-    FORMULARY_DRUG_CD = models.CharField(default=None, max_length=15, null=True)
+    DRUG_TYPE = models.CharField(default=None, max_length=20, null=True)
+    DRUG = models.CharField(default=None, max_length=100, null=True)#, primary_key=True)   # TODO: check  if we want primary key here
+    DRUG_NAME_POE = models.CharField(default=None, max_length=100, null=True)
+    DRUG_NAME_GENERIC = models.CharField(default=None, max_length=100, null=True)
+    FORMULARY_DRUG_CD = models.CharField(default=None, max_length=100, null=True)
     GSN = models.FloatField(default=None, null=True, blank=True)  # this is mostly INTs but some NaNs  disallow intfield.
     NDC = models.FloatField(default=None, null=True, blank=True)
-    PROD_STRENGTH = models.CharField(default=None, max_length=25, null=True)
-    DOSE_VAL_RX = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
-    DOSE_UNIT_RX = models.CharField(default=None, max_length=25, null=True)
-    FORM_VAL_DISP = models.CharField(default=None, max_length=25, null=True)  # can't take  float here as there are ranges somtimes
-    FORM_UNIT_DISP = models.CharField(default=None, max_length=25, null=True)
-    ROUTE = models.CharField(default=None, max_length=25, null=True)   # TODO: establish a CHOICE set here that is hierarchical!
+    PROD_STRENGTH = models.CharField(default=None, max_length=100, null=True)
+    DOSE_VAL_RX = models.CharField(default=None, max_length=100, null=True)  # can't take  float here as there are ranges somtimes
+    DOSE_UNIT_RX = models.CharField(default=None, max_length=100, null=True)
+    FORM_VAL_DISP = models.CharField(default=None, max_length=100, null=True)  # can't take  float here as there are ranges somtimes
+    FORM_UNIT_DISP = models.CharField(default=None, max_length=100, null=True)
+    ROUTE = models.CharField(default=None, max_length=100, null=True)   # TODO: establish a CHOICE set here that is hierarchical!
